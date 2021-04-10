@@ -12,10 +12,10 @@ BAKKESMOD_PLUGIN(RocketLeagueSpotify, "Rocket League + Spotify", "1.0.0", PLUGIN
 
 
 void RocketLeagueSpotify::onLoad() {
-
 	lastEventName = "None";
 	lastStatPlayer = "None";
 	lastStatVictim = "None";
+	bInMenu = true;
 
 	bEnabled = std::make_shared<bool>(false);
 
@@ -32,10 +32,17 @@ void RocketLeagueSpotify::onLoad() {
 void RocketLeagueSpotify::onUnload() {}
 
 void RocketLeagueSpotify::Render(CanvasWrapper canvas) {
+	canvas.SetColor(0, 255, 0, 255);
 	ServerWrapper server = gameWrapper->GetCurrentGameState();
-	if (server.IsNull()) return;
+	if (server.IsNull()) { 
+		canvas.SetPosition(Vector2{ 0, 0 });
+		canvas.DrawString("In Menu", 3, 3);
+		bInMenu = true;
+		return;
+	};
 
 	if (gameWrapper->GetbMetric() && server) {
+		bInMenu = false;
 		canvas.SetPosition(Vector2{ 0, 0 });
 		canvas.DrawString(lastEventName, 3, 3);
 		canvas.SetPosition(Vector2{ 0, 100 });

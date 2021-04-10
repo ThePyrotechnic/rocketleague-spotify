@@ -7,10 +7,14 @@ class RocketLeagueSpotify : public BakkesMod::Plugin::BakkesModPlugin
 {
 private:
 	std::shared_ptr<bool> bEnabled;
+
+	LinearColor textColor;
+
 	std::string lastEventName;
 	std::string lastStatName;
 	std::string lastStatPlayer;
 	std::string lastStatVictim;
+	bool bInMenu;
 
 public:
 	void onLoad() override;
