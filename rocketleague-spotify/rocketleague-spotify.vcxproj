@@ -148,7 +148,7 @@
       <AdditionalLibraryDirectories>$(APPDATA)\bakkesmod\bakkesmod\bakkesmodsdk\lib</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
-      <Command>xcopy /y "$(TargetPath)" "C:\Users\micha\AppData\Roaming\bakkesmod\bakkesmod\plugins\"</Command>
+      <Command>xcopy /y "$(TargetPath)" "$(APPDATA)\bakkesmod\bakkesmod\plugins\"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>

@@ -8,6 +8,9 @@ class RocketLeagueSpotify : public BakkesMod::Plugin::BakkesModPlugin
 private:
 	std::shared_ptr<bool> bEnabled;
 	std::string lastEventName;
+	std::string lastStatName;
+	std::string lastStatPlayer;
+	std::string lastStatVictim;
 
 public:
 	void onLoad() override;
@@ -15,5 +18,7 @@ public:
 
 	void Render(CanvasWrapper);
 
-	void PlaySound(std::string);
+	void HandleStatEvent(ServerWrapper, void*);
+	void ReplayStart(std::string);
+	void ReplayEnd(std::string);
 };
