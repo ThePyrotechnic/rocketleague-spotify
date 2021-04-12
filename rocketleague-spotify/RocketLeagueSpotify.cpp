@@ -49,8 +49,10 @@ void RocketLeagueSpotify::SetMasterVolume(std::string oldValue, CVarWrapper cvar
 
 void RocketLeagueSpotify::Render(CanvasWrapper canvas) {
 	if (gameWrapper->IsInGame() || gameWrapper->IsInOnlineGame() || gameWrapper->IsSpectatingInOnlineGame()) {
+		bInMenu = false;
 	}
 	else {
+		bInMenu = true;
 	};
 }
 
