@@ -1,18 +1,23 @@
 #include "stdafx.h"
-
+#include "Audio/AudioManager.h"
+#include <fstream>
+#include <cpr/cpr.h>
+#include <nlohmann/json.hpp>
 #include "bakkesmod/wrappers/includes.h"
 #include "bakkesmod/wrappers/GameObject/Stats/StatEventWrapper.h"
-
-#include "Audio/AudioManager.h"
+#include "bakkesmod/wrappers/http/HttpWrapper.h"
+#include "bakkesmod/core/http_structs.h"
 #include "RocketLeagueSpotify.h"
 
+using json = nlohmann::json;
 
 BAKKESMOD_PLUGIN(RocketLeagueSpotify, "Rocket League + Spotify", "1.0.0", PLUGINTYPE_FREEPLAY);
 
 // https://github.com/bakkesmodorg/BakkesMod2-Plugins
 // https://github.com/bakkesmodorg/BakkesModSDK
 // https://github.com/CinderBlocc/GoalSpeedAnywhere
-
+// https://github.com/whoshuu/cpr
+// https://github.com/nlohmann/json
 
 void RocketLeagueSpotify::onLoad() {
 	bInMenu = true;
@@ -37,6 +42,17 @@ void RocketLeagueSpotify::onLoad() {
 	size_t len;
 	_wdupenv_s(&appdata, &len, L"APPDATA");
 	modDir = std::wstring(&appdata[0], &appdata[len - 1]) + LR"(\bakkesmod\bakkesmod\rocketleague-spotify)";
+
+	std::ifstream i(modDir + LR"(\config.json)");
+	//std::ostringstream tmp;
+	//tmp << i.rdbuf();
+	//std::string s = tmp.str();
+	//cvarManager->log("TEST: " + s);
+	json config;
+	i >> config;
+	spotifyCredential = config["spotifyId:SecretBase64"];
+	cvarManager->log("Spotify Credential: " + spotifyCredential);
+	RocketLeagueSpotify::AuthenticateSpotify();
 }
 
 void RocketLeagueSpotify::onUnload() {
@@ -80,6 +96,8 @@ struct TickerStruct {
 };
 
 void RocketLeagueSpotify::ReplayStart(std::string eventName) {
+	lastEventName = eventName;
+	audioManager.PlaySoundFromFile(modDir + LR"(\assets\audio\preview.mp3)");
 }
 
 void RocketLeagueSpotify::ReplayEnd(std::string eventName) {
@@ -116,12 +134,65 @@ void RocketLeagueSpotify::ReplayEnd(std::string eventName) {
 //	"Bicycle Hit"
 
 void RocketLeagueSpotify::HandleStatEvent(ServerWrapper caller, void* args) {
-	TickerStruct* tArgs = (TickerStruct*)args;
 
-	PriWrapper victim = PriWrapper(tArgs->Victim);
-	if (victim) {
-		if (PriWrapper(tArgs->Victim).GetUniqueIdWrapper().GetIdString() == playerIDString)
-			audioManager.PlaySoundFromFile(modDir + LR"(\assets\audio\uuhhh.wav)");
-	}
+}
 
+void RocketLeagueSpotify::DownloadPreview(std::string previewUrl) {
+	auto future_preview = cpr::GetCallback([&](cpr::Response res) {
+		cvarManager->log(std::to_string(res.status_code));
+
+		auto previewFile = std::fstream(modDir + LR"(\assets\audio\preview.mp3)", std::ios::out | std::ios::binary);
+		const char* content = res.text.c_str();
+		std::stringstream sstream(res.header["Content-Length"]);
+		size_t size;
+		sstream >> size;
+		previewFile.write(content, size);
+		previewFile.close();
+		cvarManager->log("Downloaded song");
+		}, cpr::Url{ previewUrl });
+}
+
+void RocketLeagueSpotify::DownloadSong(std::string songId) {
+	auto future_track = cpr::GetCallback([&](cpr::Response res) {
+		cvarManager->log("getting song preview url");
+		cvarManager->log(std::to_string(res.status_code));
+
+		auto trackResponse = json::parse(res.text);
+		std::string previewUrl = trackResponse["preview_url"];
+		if (!previewUrl.empty()) {
+			cvarManager->log(previewUrl);
+			RocketLeagueSpotify::DownloadPreview(previewUrl);
+		}
+		else {
+			cvarManager->log("No preview URL available");
+		}
+
+		return previewUrl;
+		},
+		cpr::Url{ "https://api.spotify.com/v1/tracks/" + songId },
+			cpr::Header{ { "Authorization", "Bearer " + spotifyToken } });
+}
+
+void RocketLeagueSpotify::AuthenticateSpotify() {
+	auto future_token = cpr::PostCallback([&](cpr::Response res) {
+		cvarManager->log(spotifyCredential);
+		cvarManager->log("AUTH");
+		cvarManager->log(std::to_string(res.status_code));
+		cvarManager->log(res.text);
+		auto authResponse = json::parse(res.text);
+		std::string token = authResponse["access_token"];
+		cvarManager->log(token);
+		spotifyToken = token;
+
+		RocketLeagueSpotify::DownloadSong("4tcPIwy0UvLYjhXLrMyx89");
+
+		return token;
+		},
+		cpr::Url{ "https://accounts.spotify.com/api/token" },
+			cpr::Header{ { "Authorization", "Basic " + spotifyCredential} },
+			cpr::Parameters{ { "grant_type", "client_credentials" } });
+	// Sometime later
+	//if (future_text.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
+	//	cvarManager->log("GET RESULT");
+	//}
 }

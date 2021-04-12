@@ -40,5 +40,8 @@
     <None Include="..\RocketLeagueSpotify.set">
       <Filter>Resource Files</Filter>
     </None>
+    <None Include="..\config.json">
+      <Filter>Resource Files</Filter>
+    </None>
   </ItemGroup>
 </Project>

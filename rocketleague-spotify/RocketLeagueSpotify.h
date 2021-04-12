@@ -14,6 +14,9 @@ private:
 	UniqueIDWrapper *playerID;
 	std::string playerIDString;
 	std::wstring modDir;
+	void DownloadPreview(std::string);
+	void DownloadSong(std::string songId);
+	void AuthenticateSpotify();
 	float timeSinceFade = 0;
 	float fadeDuration = 0;
 	int fadeTarget;
