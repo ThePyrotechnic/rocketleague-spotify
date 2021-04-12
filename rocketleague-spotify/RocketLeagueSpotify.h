@@ -14,6 +14,9 @@ private:
 	UniqueIDWrapper *playerID;
 	std::string playerIDString;
 	std::wstring modDir;
+	float timeSinceFade = 0;
+	float fadeDuration = 0;
+	int fadeTarget;
 
 public:
 	void onLoad() override;
@@ -21,8 +24,10 @@ public:
 
 	void Render(CanvasWrapper);
 
+	void FadeMasterVolume(int, int);
 	void HandleStatEvent(ServerWrapper, void*);
 	void ReplayStart(std::string);
 	void ReplayEnd(std::string);
 	void SetMasterVolume(std::string, CVarWrapper);
+	void Tick();
 };

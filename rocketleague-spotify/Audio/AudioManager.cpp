@@ -29,6 +29,9 @@ void AudioManager::PlaySoundFromFile(std::wstring file) {
 void AudioManager::PlaySoundFromURL(std::wstring url) {
 }
 
+int AudioManager::GetMasterVolume() {
+	return BASS_GetConfig(BASS_CONFIG_GVOL_STREAM);
+}
 void AudioManager::SetMasterVolume(int volume) {
-	BASS_SetConfig(BASS_CONFIG_GVOL_STREAM, 10000 * (volume / 100.0f));
+	BASS_SetConfig(BASS_CONFIG_GVOL_STREAM, volume * 100.0f);
 }

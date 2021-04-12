@@ -25,7 +25,7 @@ void RocketLeagueSpotify::onLoad() {
 	gameWrapper->HookEvent("Function TAGame.Replay_TA.StopPlayback", std::bind(&RocketLeagueSpotify::ReplayEnd, this, std::placeholders::_1));
 	gameWrapper->HookEventWithCallerPost<ServerWrapper>("Function TAGame.GFxHUD_TA.HandleStatTickerMessage", std::bind(&RocketLeagueSpotify::HandleStatEvent, this, std::placeholders::_1, std::placeholders::_2));
 	gameWrapper->HookEventWithCallerPost<ServerWrapper>("Function TAGame.GFxHUD_TA.HandleStatTickerMessage", std::bind(&RocketLeagueSpotify::HandleStatEvent, this, std::placeholders::_1, std::placeholders::_2));
-
+	gameWrapper->HookEvent("Function Engine.Interaction.Tick", std::bind(&RocketLeagueSpotify::Tick, this));
 
 	gameWrapper->RegisterDrawable(bind(&RocketLeagueSpotify::Render, this, std::placeholders::_1));
 
@@ -43,12 +43,25 @@ void RocketLeagueSpotify::onUnload() {
 	BASS_Free();
 }
 
+void RocketLeagueSpotify::Tick() {
+	if (bInMenu || fadeDuration == 0) return;
+	timeSinceFade += gameWrapper->GetOnlineGame().GetTimeSinceLastTick();
+	float fadeProgress = timeSinceFade/fadeDuration;
+	audioManager.SetMasterVolume((audioManager.GetMasterVolume() * (1.0 - fadeProgress)) + (fadeTarget * fadeProgress));
+}
+
+void RocketLeagueSpotify::FadeMasterVolume(int target, int timeToFade) {
+	timeSinceFade = 0;
+	fadeTarget = target;
+	fadeDuration = fadeDuration;
+}
+
 void RocketLeagueSpotify::SetMasterVolume(std::string oldValue, CVarWrapper cvar) {
 	audioManager.SetMasterVolume(cvar.getIntValue());
 }
 
 void RocketLeagueSpotify::Render(CanvasWrapper canvas) {
-	if (gameWrapper->IsInGame() || gameWrapper->IsInOnlineGame() || gameWrapper->IsSpectatingInOnlineGame()) {
+	if (gameWrapper->IsInOnlineGame() || gameWrapper->IsSpectatingInOnlineGame()) {
 		bInMenu = false;
 	}
 	else {
