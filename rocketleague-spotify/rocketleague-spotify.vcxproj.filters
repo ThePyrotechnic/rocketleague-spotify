@@ -18,10 +18,27 @@
     <ClCompile Include="RocketLeagueSpotify.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Audio\AudioManager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="stdafx.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="RocketLeagueSpotify.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Audio\AudioManager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="stdafx.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\RocketLeagueSpotify.set">
+      <Filter>Resource Files</Filter>
+    </None>
   </ItemGroup>
 </Project>

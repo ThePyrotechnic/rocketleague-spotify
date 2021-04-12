@@ -1,6 +1,9 @@
+#include "stdafx.h"
+
 #include "bakkesmod/wrappers/includes.h"
 #include "bakkesmod/wrappers/GameObject/Stats/StatEventWrapper.h"
 
+#include "Audio/AudioManager.h"
 #include "RocketLeagueSpotify.h"
 
 
@@ -13,41 +16,60 @@ BAKKESMOD_PLUGIN(RocketLeagueSpotify, "Rocket League + Spotify", "1.0.0", PLUGIN
 
 void RocketLeagueSpotify::onLoad() {
 	lastEventName = "None";
-	lastStatPlayer = "None";
-	lastStatVictim = "None";
 	bInMenu = true;
 
-	bEnabled = std::make_shared<bool>(false);
+	cvarManager->registerCvar("RLS_Master", "50", "Master volume", true, true, 0, true, 100);
 
-	cvarManager->registerCvar("RLS_Enabled", "1", "Enable Rocket League + Spotify integration", true, true, 0, true, 1).bindTo(bEnabled);
+	cvarManager->getCvar("RLS_Master").addOnValueChanged(std::bind(&RocketLeagueSpotify::SetMasterVolume, this, std::placeholders::_1, std::placeholders::_2));
 	
 	gameWrapper->HookEvent("Function GameEvent_Soccar_TA.PostGoalScored.StartReplay", std::bind(&RocketLeagueSpotify::ReplayStart, this, std::placeholders::_1));
 	gameWrapper->HookEvent("Function TAGame.Replay_TA.StopPlayback", std::bind(&RocketLeagueSpotify::ReplayEnd, this, std::placeholders::_1));
 	gameWrapper->HookEventWithCallerPost<ServerWrapper>("Function TAGame.GFxHUD_TA.HandleStatTickerMessage", std::bind(&RocketLeagueSpotify::HandleStatEvent, this, std::placeholders::_1, std::placeholders::_2));
+	gameWrapper->HookEventWithCallerPost<ServerWrapper>("Function TAGame.GFxHUD_TA.HandleStatTickerMessage", std::bind(&RocketLeagueSpotify::HandleStatEvent, this, std::placeholders::_1, std::placeholders::_2));
 
 
 	gameWrapper->RegisterDrawable(bind(&RocketLeagueSpotify::Render, this, std::placeholders::_1));
+
+	playerID = new UniqueIDWrapper(gameWrapper->GetUniqueID());
+	playerIDString = playerID->GetIdString();
+	cvarManager->log(L"ERROR: " + std::to_wstring(BASS_ErrorGetCode()));
+
+	wchar_t* appdata;
+	size_t len;
+	_wdupenv_s(&appdata, &len, L"APPDATA");
+	assetDir = std::wstring(&appdata[0], &appdata[len - 1]) + LR"(\bakkesmod\bakkesmod\rocketleague-spotify\assets)";
 }
 
-void RocketLeagueSpotify::onUnload() {}
+void RocketLeagueSpotify::onUnload() {
+	BASS_Free();
+}
+
+void RocketLeagueSpotify::SetMasterVolume(std::string oldValue, CVarWrapper cvar) {
+	audioManager.SetMasterVolume(cvar.getIntValue());
+}
 
 void RocketLeagueSpotify::Render(CanvasWrapper canvas) {
-	canvas.SetColor(0, 255, 0, 255);
-	ServerWrapper server = gameWrapper->GetCurrentGameState();
-	if (server.IsNull()) { 
+	if (gameWrapper->IsInGame() || gameWrapper->IsInOnlineGame() || gameWrapper->IsSpectatingInOnlineGame()) {
+		canvas.SetColor(0, 255, 0, 255);
+		bInMenu = false;
+		canvas.SetPosition(Vector2{ 0, 0 });
+		canvas.DrawString(lastEventName, 3, 3);
+
+		std::string statString = "";
+		if (!lastStatPlayer->IsNull())
+			statString += lastStatPlayer->GetPlayerName().ToString() + ": " + lastStatName;
+		if (!lastStatVictim->IsNull())
+			statString += " | Victim: " + lastStatVictim->GetPlayerName().ToString();
+		canvas.SetPosition(Vector2{ 0, 100 });
+		canvas.DrawString(statString, 3, 3);
+	}
+	else {
+		canvas.SetColor(0, 255, 0, 255);
 		canvas.SetPosition(Vector2{ 0, 0 });
 		canvas.DrawString("In Menu", 3, 3);
 		bInMenu = true;
 		return;
 	};
-
-	if (gameWrapper->GetbMetric() && server) {
-		bInMenu = false;
-		canvas.SetPosition(Vector2{ 0, 0 });
-		canvas.DrawString(lastEventName, 3, 3);
-		canvas.SetPosition(Vector2{ 0, 100 });
-		canvas.DrawString(lastStatPlayer + ": " + lastStatName + " | Victim: " + lastStatVictim, 3, 3);
-	}
 }
 
 struct TickerStruct {
@@ -66,6 +88,8 @@ void RocketLeagueSpotify::ReplayStart(std::string eventName) {
 
 void RocketLeagueSpotify::ReplayEnd(std::string eventName) {
 	lastEventName = eventName;
+
+	audioManager.PlaySoundFromFile(assetDir + LR"(\audio\uuhhh.wav)");
 }
 
 //	"Demolition"
@@ -100,10 +124,15 @@ void RocketLeagueSpotify::ReplayEnd(std::string eventName) {
 void RocketLeagueSpotify::HandleStatEvent(ServerWrapper caller, void* args) {
 	TickerStruct* tArgs = (TickerStruct*)args;
 
-	lastStatPlayer = PriWrapper(tArgs->Receiver).GetPlayerName().ToString();
+	lastStatPlayer = new PriWrapper(tArgs->Receiver);
 	lastStatName = StatEventWrapper(tArgs->StatEvent).GetLabel().ToString();
 
-	auto victim = PriWrapper(tArgs->Victim);
-	if (victim) lastStatVictim = PriWrapper(tArgs->Victim).GetPlayerName().ToString();
-	else lastStatVictim = "None";
+	PriWrapper victim = PriWrapper(tArgs->Victim);
+	if (victim) {
+		lastStatVictim = new PriWrapper(tArgs->Victim);
+		if (lastStatVictim->GetUniqueIdWrapper().GetIdString() == playerIDString)
+			audioManager.PlaySoundFromFile(assetDir + LR"(\audio\uuhhh.wav)");
+	}
+	else lastStatVictim = NULL;
+
 }
