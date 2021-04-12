@@ -15,7 +15,6 @@ BAKKESMOD_PLUGIN(RocketLeagueSpotify, "Rocket League + Spotify", "1.0.0", PLUGIN
 
 
 void RocketLeagueSpotify::onLoad() {
-	lastEventName = "None";
 	bInMenu = true;
 
 	cvarManager->registerCvar("RLS_Master", "50", "Master volume", true, true, 0, true, 100);
@@ -50,25 +49,8 @@ void RocketLeagueSpotify::SetMasterVolume(std::string oldValue, CVarWrapper cvar
 
 void RocketLeagueSpotify::Render(CanvasWrapper canvas) {
 	if (gameWrapper->IsInGame() || gameWrapper->IsInOnlineGame() || gameWrapper->IsSpectatingInOnlineGame()) {
-		canvas.SetColor(0, 255, 0, 255);
-		bInMenu = false;
-		canvas.SetPosition(Vector2{ 0, 0 });
-		canvas.DrawString(lastEventName, 3, 3);
-
-		std::string statString = "";
-		if (!lastStatPlayer->IsNull())
-			statString += lastStatPlayer->GetPlayerName().ToString() + ": " + lastStatName;
-		if (!lastStatVictim->IsNull())
-			statString += " | Victim: " + lastStatVictim->GetPlayerName().ToString();
-		canvas.SetPosition(Vector2{ 0, 100 });
-		canvas.DrawString(statString, 3, 3);
 	}
 	else {
-		canvas.SetColor(0, 255, 0, 255);
-		canvas.SetPosition(Vector2{ 0, 0 });
-		canvas.DrawString("In Menu", 3, 3);
-		bInMenu = true;
-		return;
 	};
 }
 
@@ -83,12 +65,9 @@ struct TickerStruct {
 };
 
 void RocketLeagueSpotify::ReplayStart(std::string eventName) {
-	lastEventName = eventName;
 }
 
 void RocketLeagueSpotify::ReplayEnd(std::string eventName) {
-	lastEventName = eventName;
-
 	audioManager.PlaySoundFromFile(assetDir + LR"(\audio\uuhhh.wav)");
 }
 
@@ -124,15 +103,10 @@ void RocketLeagueSpotify::ReplayEnd(std::string eventName) {
 void RocketLeagueSpotify::HandleStatEvent(ServerWrapper caller, void* args) {
 	TickerStruct* tArgs = (TickerStruct*)args;
 
-	lastStatPlayer = new PriWrapper(tArgs->Receiver);
-	lastStatName = StatEventWrapper(tArgs->StatEvent).GetLabel().ToString();
-
 	PriWrapper victim = PriWrapper(tArgs->Victim);
 	if (victim) {
-		lastStatVictim = new PriWrapper(tArgs->Victim);
-		if (lastStatVictim->GetUniqueIdWrapper().GetIdString() == playerIDString)
+		if (PriWrapper(tArgs->Victim).GetUniqueIdWrapper().GetIdString() == playerIDString)
 			audioManager.PlaySoundFromFile(assetDir + LR"(\audio\uuhhh.wav)");
 	}
-	else lastStatVictim = NULL;
 
 }

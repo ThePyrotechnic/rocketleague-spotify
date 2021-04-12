@@ -11,10 +11,6 @@ private:
 
 	AudioManager audioManager;
 	bool bInMenu;
-	std::string lastEventName;
-	std::string lastStatName;
-	PriWrapper *lastStatPlayer;
-	PriWrapper *lastStatVictim;
 	UniqueIDWrapper *playerID;
 	std::string playerIDString;
 	std::wstring assetDir;
