@@ -1,3 +1,5 @@
+#include "stdafx.h"
+#include "Audio/AudioManager.h"
 #include <fstream>
 #include <cpr/cpr.h>
 #include <nlohmann/json.hpp>
@@ -14,57 +16,62 @@ BAKKESMOD_PLUGIN(RocketLeagueSpotify, "Rocket League + Spotify", "1.0.0", PLUGIN
 // https://github.com/bakkesmodorg/BakkesMod2-Plugins
 // https://github.com/bakkesmodorg/BakkesModSDK
 // https://github.com/CinderBlocc/GoalSpeedAnywhere
-// https://github.com/yhirose/cpp-httplib
+// https://github.com/whoshuu/cpr
+// https://github.com/nlohmann/json
 
 void RocketLeagueSpotify::onLoad() {
-
-	std::ifstream i("C:\\Users\\Alec\\Downloads\\rocketleague-spotify\\rocketleague-spotify\\config.json");
-	std::ostringstream tmp;
-	tmp << i.rdbuf();
-	std::string s = tmp.str();
-	cvarManager->log("TEST: " + s);
-	//json config;
-	//i >> config;
-	//std::string spotifyCredential = config["spotifyId:SecretBase64"];
-	//cvarManager->log("Spotify Credential: " + spotifyCredential);
 
 	lastEventName = "None";
 	lastStatPlayer = "None";
 	lastStatVictim = "None";
 	bInMenu = true;
 
-	bEnabled = std::make_shared<bool>(false);
+	cvarManager->registerCvar("RLS_Master", "50", "Master volume", true, true, 0, true, 100);
 
-	cvarManager->registerCvar("RLS_Enabled", "1", "Enable Rocket League + Spotify integration", true, true, 0, true, 1).bindTo(bEnabled);
+	cvarManager->getCvar("RLS_Master").addOnValueChanged(std::bind(&RocketLeagueSpotify::SetMasterVolume, this, std::placeholders::_1, std::placeholders::_2));
 	
 	gameWrapper->HookEvent("Function GameEvent_Soccar_TA.PostGoalScored.StartReplay", std::bind(&RocketLeagueSpotify::ReplayStart, this, std::placeholders::_1));
 	gameWrapper->HookEvent("Function TAGame.Replay_TA.StopPlayback", std::bind(&RocketLeagueSpotify::ReplayEnd, this, std::placeholders::_1));
 	gameWrapper->HookEventWithCallerPost<ServerWrapper>("Function TAGame.GFxHUD_TA.HandleStatTickerMessage", std::bind(&RocketLeagueSpotify::HandleStatEvent, this, std::placeholders::_1, std::placeholders::_2));
 
-
 	gameWrapper->RegisterDrawable(bind(&RocketLeagueSpotify::Render, this, std::placeholders::_1));
+
+	playerID = new UniqueIDWrapper(gameWrapper->GetUniqueID());
+	playerIDString = playerID->GetIdString();
+	cvarManager->log(L"ERROR: " + std::to_wstring(BASS_ErrorGetCode()));
+
+	wchar_t* appdata;
+	size_t len;
+	_wdupenv_s(&appdata, &len, L"APPDATA");
+	modDir = std::wstring(&appdata[0], &appdata[len - 1]) + LR"(\bakkesmod\bakkesmod\rocketleague-spotify)";
+
+	std::ifstream i(modDir + LR"(\config.json)");
+	//std::ostringstream tmp;
+	//tmp << i.rdbuf();
+	//std::string s = tmp.str();
+	//cvarManager->log("TEST: " + s);
+	json config;
+	i >> config;
+	spotifyCredential = config["spotifyId:SecretBase64"];
+	cvarManager->log("Spotify Credential: " + spotifyCredential);
+	RocketLeagueSpotify::AuthenticateSpotify();
 }
 
-void RocketLeagueSpotify::onUnload() {}
+void RocketLeagueSpotify::onUnload() {
+	BASS_Free();
+}
+
+void RocketLeagueSpotify::SetMasterVolume(std::string oldValue, CVarWrapper cvar) {
+	audioManager.SetMasterVolume(cvar.getIntValue());
+}
 
 void RocketLeagueSpotify::Render(CanvasWrapper canvas) {
-	canvas.SetColor(0, 255, 0, 255);
-	ServerWrapper server = gameWrapper->GetCurrentGameState();
-	if (server.IsNull()) { 
-		canvas.SetPosition(Vector2{ 0, 0 });
-		canvas.DrawString("In Menu", 3, 3);
-		bInMenu = true;
-		return;
-	}
-
-	//if (gameWrapper->GetbMetric() && server) {
-	else {
+	if (gameWrapper->IsInGame() || gameWrapper->IsInOnlineGame() || gameWrapper->IsSpectatingInOnlineGame()) {
 		bInMenu = false;
-		canvas.SetPosition(Vector2{ 0, 0 });
-		canvas.DrawString(lastEventName, 3, 3);
-		canvas.SetPosition(Vector2{ 0, 100 });
-		canvas.DrawString(lastStatPlayer + ": " + lastStatName + " | Victim: " + lastStatVictim, 3, 3);
 	}
+	else {
+		bInMenu = true;
+	};
 }
 
 struct TickerStruct {
@@ -79,17 +86,11 @@ struct TickerStruct {
 
 void RocketLeagueSpotify::ReplayStart(std::string eventName) {
 	lastEventName = eventName;
-	RocketLeagueSpotify::AuthenticateSpotify();
-
-	// Sometime later
-	//if (future_text.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
-	//	cvarManager->log("GET RESULT");
-	//}
-
+	audioManager.PlaySoundFromFile(modDir + LR"(\assets\audio\preview.mp3)");
 }
 
 void RocketLeagueSpotify::ReplayEnd(std::string eventName) {
-	lastEventName = eventName;
+	audioManager.PlaySoundFromFile(modDir + LR"(\assets\audio\uuhhh.wav)");
 }
 
 //	"Demolition"
@@ -122,29 +123,21 @@ void RocketLeagueSpotify::ReplayEnd(std::string eventName) {
 //	"Bicycle Hit"
 
 void RocketLeagueSpotify::HandleStatEvent(ServerWrapper caller, void* args) {
-	TickerStruct* tArgs = (TickerStruct*)args;
 
-	lastStatPlayer = PriWrapper(tArgs->Receiver).GetPlayerName().ToString();
-	lastStatName = StatEventWrapper(tArgs->StatEvent).GetLabel().ToString();
-
-	auto victim = PriWrapper(tArgs->Victim);
-	if (victim) lastStatVictim = PriWrapper(tArgs->Victim).GetPlayerName().ToString();
-	else lastStatVictim = "None";
-
-	cvarManager->log(lastStatVictim);
 }
 
 void RocketLeagueSpotify::DownloadPreview(std::string previewUrl) {
 	auto future_preview = cpr::GetCallback([&](cpr::Response res) {
 		cvarManager->log(std::to_string(res.status_code));
 
-		auto previewFile = std::fstream("preview.mp3", std::ios::out | std::ios::binary);
+		auto previewFile = std::fstream(modDir + LR"(\assets\audio\preview.mp3)", std::ios::out | std::ios::binary);
 		const char* content = res.text.c_str();
 		std::stringstream sstream(res.header["Content-Length"]);
 		size_t size;
 		sstream >> size;
 		previewFile.write(content, size);
 		previewFile.close();
+		cvarManager->log("Downloaded song");
 		}, cpr::Url{ previewUrl });
 }
 
@@ -165,23 +158,30 @@ void RocketLeagueSpotify::DownloadSong(std::string songId) {
 
 		return previewUrl;
 		},
-		cpr::Url{ "https://api.spotify.com/v1/tracks/4tcPIwy0UvLYjhXLrMyx89" },
+		cpr::Url{ "https://api.spotify.com/v1/tracks/" + songId },
 			cpr::Header{ { "Authorization", "Bearer " + spotifyToken } });
 }
 
 void RocketLeagueSpotify::AuthenticateSpotify() {
 	auto future_token = cpr::PostCallback([&](cpr::Response res) {
+		cvarManager->log(spotifyCredential);
 		cvarManager->log("AUTH");
 		cvarManager->log(std::to_string(res.status_code));
-
+		cvarManager->log(res.text);
 		auto authResponse = json::parse(res.text);
 		std::string token = authResponse["access_token"];
 		cvarManager->log(token);
 		spotifyToken = token;
 
+		RocketLeagueSpotify::DownloadSong("4tcPIwy0UvLYjhXLrMyx89");
+
 		return token;
 		},
 		cpr::Url{ "https://accounts.spotify.com/api/token" },
-			cpr::Header{ { "Authorization", "Basic " + spotifyCredential } },
+			cpr::Header{ { "Authorization", "Basic " + spotifyCredential} },
 			cpr::Parameters{ { "grant_type", "client_credentials" } });
+	// Sometime later
+	//if (future_text.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
+	//	cvarManager->log("GET RESULT");
+	//}
 }

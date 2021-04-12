@@ -138,31 +138,40 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions);IS_PLUGIN;</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(APPDATA)\bakkesmod\bakkesmod\bakkesmodsdk\include;$(ProjectDir)\libs\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)include;$(APPDATA)\bakkesmod\bakkesmod\bakkesmodsdk\include</AdditionalIncludeDirectories>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <ForcedIncludeFiles>%(ForcedIncludeFiles)</ForcedIncludeFiles>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(APPDATA)\bakkesmod\bakkesmod\bakkesmodsdk\lib;$(ProjectDir)\libs\lib</AdditionalLibraryDirectories>
-      <AdditionalDependencies>$(ProjectDir)\libs\lib\libcrypto.lib;$(ProjectDir)\libs\lib\libssl.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(APPDATA)\bakkesmod\bakkesmod\bakkesmodsdk\lib;$(ProjectDir)\lib</AdditionalLibraryDirectories>
+      <AdditionalDependencies>$(ProjectDir)\lib\libcrypto.lib;$(ProjectDir)\lib\libssl.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>xcopy /y "$(TargetPath)" "$(APPDATA)\bakkesmod\bakkesmod\plugins\"</Command>
+      <Command>xcopy /y "$(TargetPath)" "$(APPDATA)\bakkesmod\bakkesmod\plugins\"
+
+xcopy /y "$(SolutionDir)RocketLeagueSpotify.set" "$(APPDATA)\bakkesmod\bakkesmod\plugins\settings\"
+xcopy /y "$(SolutionDir)config.json" "$(APPDATA)\bakkesmod\bakkesmod\rocketleague-spotify\"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Audio\AudioManager.cpp" />
     <ClCompile Include="RocketLeagueSpotify.cpp" />
+    <ClCompile Include="stdafx.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Audio\AudioManager.h" />
     <ClInclude Include="RocketLeagueSpotify.h" />
+    <ClInclude Include="stdafx.h" />
   </ItemGroup>
   <ItemGroup>
-    <Text Include="config.json">
-      <FileType>Document</FileType>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </Text>
+    <None Include="..\config.json" />
+    <None Include="..\RocketLeagueSpotify.set" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
