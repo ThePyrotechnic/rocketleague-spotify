@@ -10,6 +10,8 @@ private:
 	LinearColor textColor;
 
 	AudioManager audioManager;
+	std::string spotifyCredential;
+	std::string spotifyToken;
 	bool bInMenu;
 	UniqueIDWrapper *playerID;
 	std::string playerIDString;

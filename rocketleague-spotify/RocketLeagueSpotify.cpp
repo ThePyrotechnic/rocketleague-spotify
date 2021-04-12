@@ -1,12 +1,8 @@
 #include "stdafx.h"
 #include "Audio/AudioManager.h"
-#include <fstream>
-#include <cpr/cpr.h>
-#include <nlohmann/json.hpp>
+
 #include "bakkesmod/wrappers/includes.h"
 #include "bakkesmod/wrappers/GameObject/Stats/StatEventWrapper.h"
-#include "bakkesmod/wrappers/http/HttpWrapper.h"
-#include "bakkesmod/core/http_structs.h"
 #include "RocketLeagueSpotify.h"
 
 using json = nlohmann::json;
@@ -61,15 +57,17 @@ void RocketLeagueSpotify::onUnload() {
 
 void RocketLeagueSpotify::Tick() {
 	if (bInMenu || fadeDuration == 0) return;
+
 	timeSinceFade += gameWrapper->GetOnlineGame().GetTimeSinceLastTick();
 	float fadeProgress = timeSinceFade/fadeDuration;
-	audioManager.SetMasterVolume((audioManager.GetMasterVolume() * (1.0 - fadeProgress)) + (fadeTarget * fadeProgress));
+	if (fadeProgress < 0.999)
+		audioManager.SetMasterVolume((audioManager.GetMasterVolume() * (1.f - fadeProgress)) + (fadeTarget * fadeProgress));
 }
 
 void RocketLeagueSpotify::FadeMasterVolume(int target, int timeToFade) {
-	timeSinceFade = 0;
+	timeSinceFade = 0.f;
 	fadeTarget = target;
-	fadeDuration = fadeDuration;
+	fadeDuration = timeToFade;
 }
 
 void RocketLeagueSpotify::SetMasterVolume(std::string oldValue, CVarWrapper cvar) {
@@ -96,7 +94,6 @@ struct TickerStruct {
 };
 
 void RocketLeagueSpotify::ReplayStart(std::string eventName) {
-	lastEventName = eventName;
 	audioManager.PlaySoundFromFile(modDir + LR"(\assets\audio\preview.mp3)");
 }
 
