@@ -1,5 +1,5 @@
 #pragma once
-#pragma comment( lib, "bakkesmod.lib" )
+#pragma comment( lib, "pluginsdk.lib" )
 #include "bakkesmod/plugin/bakkesmodplugin.h"
 
 
@@ -14,7 +14,12 @@ private:
 	std::string lastStatName;
 	std::string lastStatPlayer;
 	std::string lastStatVictim;
+	std::string spotifyCredential;
+	std::string spotifyToken;
 	bool bInMenu;
+	void DownloadPreview(std::string);
+	void DownloadSong(std::string songId);
+	void AuthenticateSpotify();
 
 public:
 	void onLoad() override;
@@ -25,4 +30,5 @@ public:
 	void HandleStatEvent(ServerWrapper, void*);
 	void ReplayStart(std::string);
 	void ReplayEnd(std::string);
+
 };
