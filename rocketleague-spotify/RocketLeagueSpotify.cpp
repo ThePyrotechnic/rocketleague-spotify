@@ -36,7 +36,7 @@ void RocketLeagueSpotify::onLoad() {
 	wchar_t* appdata;
 	size_t len;
 	_wdupenv_s(&appdata, &len, L"APPDATA");
-	assetDir = std::wstring(&appdata[0], &appdata[len - 1]) + LR"(\bakkesmod\bakkesmod\rocketleague-spotify\assets)";
+	modDir = std::wstring(&appdata[0], &appdata[len - 1]) + LR"(\bakkesmod\bakkesmod\rocketleague-spotify)";
 }
 
 void RocketLeagueSpotify::onUnload() {
@@ -70,7 +70,7 @@ void RocketLeagueSpotify::ReplayStart(std::string eventName) {
 }
 
 void RocketLeagueSpotify::ReplayEnd(std::string eventName) {
-	audioManager.PlaySoundFromFile(assetDir + LR"(\audio\uuhhh.wav)");
+	audioManager.PlaySoundFromFile(modDir + LR"(\assets\audio\uuhhh.wav)");
 }
 
 //	"Demolition"
@@ -108,7 +108,7 @@ void RocketLeagueSpotify::HandleStatEvent(ServerWrapper caller, void* args) {
 	PriWrapper victim = PriWrapper(tArgs->Victim);
 	if (victim) {
 		if (PriWrapper(tArgs->Victim).GetUniqueIdWrapper().GetIdString() == playerIDString)
-			audioManager.PlaySoundFromFile(assetDir + LR"(\audio\uuhhh.wav)");
+			audioManager.PlaySoundFromFile(modDir + LR"(\assets\audio\uuhhh.wav)");
 	}
 
 }

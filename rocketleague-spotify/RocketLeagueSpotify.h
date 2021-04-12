@@ -13,7 +13,7 @@ private:
 	bool bInMenu;
 	UniqueIDWrapper *playerID;
 	std::string playerIDString;
-	std::wstring assetDir;
+	std::wstring modDir;
 
 public:
 	void onLoad() override;
