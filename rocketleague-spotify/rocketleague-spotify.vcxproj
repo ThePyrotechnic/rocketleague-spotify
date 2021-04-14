@@ -156,7 +156,10 @@
     </Link>
     <PostBuildEvent>
       <Command>xcopy /y "$(TargetPath)" "$(APPDATA)\bakkesmod\bakkesmod\plugins\"
-xcopy /y "$(SolutionDir)config.json" "$(APPDATA)\bakkesmod\bakkesmod\rocketleague-spotify\"</Command>
+
+xcopy /y "$(SolutionDir)config.json" "$(APPDATA)\bakkesmod\bakkesmod\rocketleague-spotify\"
+
+xcopy /y "$(SolutionDir)RocketLeagueSpotify.set" "$(APPDATA)\bakkesmod\bakkesmod\rocketleague-spotify\"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>

@@ -20,18 +20,31 @@ AudioManager::AudioManager() {
 	BASS_SetConfig(BASS_CONFIG_GVOL_STREAM, 10000); // global stream volume (0-10000)
 }
 
-void AudioManager::PlaySoundFromFile(std::wstring file) {
+HSTREAM AudioManager::PlaySoundFromFile(std::wstring file) {
 
-	auto stream = BASS_StreamCreateFile(FALSE, file.c_str(), 0, 0, 0);
+	HSTREAM stream = BASS_StreamCreateFile(FALSE, file.c_str(), 0, 0, 0);
 	BASS_ChannelPlay(stream, true);
+
+	return stream;
 }
 
 void AudioManager::PlaySoundFromURL(std::wstring url) {
 }
 
-int AudioManager::GetMasterVolume() {
-	return BASS_GetConfig(BASS_CONFIG_GVOL_STREAM);
+int AudioManager::StopSound(HSTREAM s) {
+
+	BASS_ChannelStop(s);
+	int code = BASS_ErrorGetCode();
+	if (code != 0) return code;
+	BASS_StreamFree(s);
+	return BASS_ErrorGetCode();
 }
-void AudioManager::SetMasterVolume(int volume) {
+
+float AudioManager::GetMasterVolume() {
+	return volume;
+}
+
+void AudioManager::SetMasterVolume(float volume) {
+	this->volume = volume;  // Preserve float value
 	BASS_SetConfig(BASS_CONFIG_GVOL_STREAM, volume * 100.0f);
 }
