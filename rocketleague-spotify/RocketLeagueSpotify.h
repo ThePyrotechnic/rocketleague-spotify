@@ -4,22 +4,33 @@
 
 
 class RocketLeagueSpotify : public BakkesMod::Plugin::BakkesModPlugin {
-private:
+public:
+	RocketLeagueSpotify();
+	void onLoad() override;
+	void onUnload() override;
+
+	void Render(CanvasWrapper);
+	void FadeIn(int);
+	void FadeOut(int);
+	void HandleStatEvent(ServerWrapper, void*);
+	void ReplayStart(std::string);
+	void ReplayEnd(std::string);
+	void CVarMasterVolume(std::string, CVarWrapper);
+	void CVarGoalSong(std::string, CVarWrapper);
+	void Tick();
+
 	std::shared_ptr<int> fadeInTimeCVar;
 	std::shared_ptr<int> fadeOutTimeCVar;
 
 	LinearColor textColor;
 
 	AudioManager audioManager;
-	std::string spotifyCredential;
-	std::string spotifyToken;
+	SpotifyManager spotifyManager;
 	bool bInMenu;
 	UniqueIDWrapper* playerID;
 	std::string playerIDString;
 	std::wstring modDir;
-	void DownloadPreview(std::string, std::string);
-	void DownloadSong(std::string songId);
-	void AuthenticateSpotify();
+
 	void FadeMasterVolume(int, int);
 
 	clock_t lastFadeTime = 0;
@@ -67,18 +78,4 @@ private:
 		"7dsImih2L25fa6qjNphBI7",
 		"2QeQNF182V61Im0QpjdVta"
 	};
-
-public:
-	void onLoad() override;
-	void onUnload() override;
-
-	void Render(CanvasWrapper);
-	void FadeIn(int);
-	void FadeOut(int);
-	void HandleStatEvent(ServerWrapper, void*);
-	void ReplayStart(std::string);
-	void ReplayEnd(std::string);
-	void CVarMasterVolume(std::string, CVarWrapper);
-	void CVarGoalSong(std::string, CVarWrapper);
-	void Tick();
 };
