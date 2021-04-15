@@ -27,6 +27,9 @@
     <ClCompile Include="Cache\CacheManager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Spotify\SpotifyManager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="RocketLeagueSpotify.h">
@@ -36,6 +39,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="stdafx.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Spotify\SpotifyManager.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Cache\CacheManager.h">

@@ -1,5 +1,7 @@
 #include "stdafx.h"
+
 #include "Audio/AudioManager.h"
+#include "Spotify/SpotifyManager.h"
 #include "Cache/CacheManager.h"
 
 #include "bakkesmod/wrappers/includes.h"
@@ -16,6 +18,10 @@ BAKKESMOD_PLUGIN(RocketLeagueSpotify, "Rocket League + Spotify", "1.0.0", PLUGIN
 // https://github.com/whoshuu/cpr
 // https://github.com/nlohmann/json
 // cl_settings_refreshplugins when making changes to the RocketLeagueSpotify.set file
+
+RocketLeagueSpotify::RocketLeagueSpotify() {
+	spotifyManager = SpotifyManager();
+}
 
 void RocketLeagueSpotify::onLoad() {
 	bInMenu = true;
@@ -52,27 +58,24 @@ void RocketLeagueSpotify::onLoad() {
 	_wdupenv_s(&appdata, &len, L"APPDATA");
 	modDir = std::wstring(&appdata[0], &appdata[len - 1]) + LR"(\bakkesmod\bakkesmod\rocketleague-spotify)";
 
+	spotifyManager = SpotifyManager(cvarManager, modDir);
+
+	
 	audioDir = modDir + LR"(\assets\audio\)";
 	cacheManager = CacheManager(audioDir);
-
-	std::ifstream i(modDir + LR"(\config.json)");
 	//std::ostringstream tmp;
 	//tmp << i.rdbuf();
 	//std::string s = tmp.str();
 	//cvarManager->log("TEST: " + s);
-	json config;
-	i >> config;
-	spotifyCredential = config["spotifyId:SecretBase64"];
-	cvarManager->log("Spotify Credential: " + spotifyCredential);
-	RocketLeagueSpotify::AuthenticateSpotify();
-
-	songPaths.insert({ "random", std::vector<std::wstring>() });
-	songPaths.insert({ "funny", std::vector<std::wstring>() });
-
+	std::string playlistId = "1FLmlXw521Ap4RT1chb1wi";
+	std::vector<std::wstring> filePaths = spotifyManager.DownloadPlaylist(playlistId);
+	for (std::wstring filePath : filePaths) {
+		songPaths.push_back(filePath);
+	}
 	for (std::string songId : randomSongs) {  // TODO make this a function and clean up the whole flow
 		std::wstring filePath = RocketLeagueSpotify::DownloadSong(songId);
 		if (!filePath.empty())
-			songPaths["random"].push_back(filePath);	
+			songPaths["random"].push_back(filePath);
 	}
 	for (std::string songId : funnySongs) {
 		std::wstring filePath = RocketLeagueSpotify::DownloadSong(songId);
@@ -84,8 +87,6 @@ void RocketLeagueSpotify::onLoad() {
 		if (!filePath.empty())
 			songPaths["america"].push_back(filePath);
 	}
-	cvarManager->log("RawRandom: " + std::to_string(randomSongs.size()) + " RawFunny: " + std::to_string(funnySongs.size()));
-	cvarManager->log("random: " + std::to_string(songPaths["random"].size()) + " funny: " + std::to_string(songPaths["funny"].size()));
 	//RocketLeagueSpotify::DownloadSong(cvarManager->getCvar("RLS_GoalSong").getStringValue());
 
 	Tick();
@@ -162,7 +163,7 @@ void RocketLeagueSpotify::CVarGoalSong(std::string oldValue, CVarWrapper cvar) {
 
 	if (newSong.empty()) return;
 
-	DownloadSong(newSong);
+	spotifyManager.DownloadSong(newSong);
 }
 
 void RocketLeagueSpotify::CVarGoalPlaylist(std::string oldValue, CVarWrapper cvar) {
@@ -209,90 +210,4 @@ void RocketLeagueSpotify::ReplayEnd(std::string eventName) {
 
 void RocketLeagueSpotify::HandleStatEvent(ServerWrapper caller, void* args) {
 
-}
-
-std::wstring RocketLeagueSpotify::DownloadPreview(std::string songId, std::string previewUrl) {
-	auto res = cpr::Get(cpr::Url{ previewUrl });
-	cvarManager->log(std::to_string(res.status_code));
-	if (res.status_code != 200) return std::wstring(L"");
-
-	std::wstring wSongId = std::wstring(songId.length(), L' ');
-	std::copy(songId.begin(), songId.end(), wSongId.begin());
-	std::wstring filePath = modDir + LR"(\assets\audio\)" + wSongId + L".mp3";
-	std::fstream previewFile = std::fstream(filePath, std::ios::out | std::ios::binary);
-	const char* content = res.text.c_str();
-	std::stringstream sstream(res.header["Content-Length"]);
-	size_t size;
-	sstream >> size;
-	previewFile.write(content, size);
-	previewFile.close();
-	cvarManager->log("Downloaded song");
-	cvarManager->getCvar("RLS_GoalSongStatus").setValue("Downloaded!");
-	goalSongFilePath = filePath;
-	return filePath;
-}
-
-std::wstring RocketLeagueSpotify::DownloadSong(std::string songId) {
-	if (songId.empty()) {
-		cvarManager->getCvar("RLS_GoalSongStatus").setValue("Invalid ID");
-		return std::wstring(L"");
-	}
-
-	std::wstring filePath = cacheManager.GetCachedSong(StrToWStr(songId));
-	if (!filePath.empty()) {
-		cvarManager->getCvar("RLS_GoalSongStatus").setValue("Cached!");
-		return filePath;
-	}
-
-	cvarManager->log("Not cached: " + songId);
-
-	auto res = cpr::Get(cpr::Url{ "https://api.spotify.com/v1/tracks/" + songId },
-		cpr::Header{ { "Authorization", "Bearer " + spotifyToken } });
-	cvarManager->log("getting song preview url");
-	cvarManager->getCvar("RLS_GoalSongStatus").setValue("Downloading ...");
-	cvarManager->log(std::to_string(res.status_code));
-	if (res.status_code != 200) {
-		if (res.status_code == 401) {
-			AuthenticateSpotify();
-			return DownloadSong(songId);
-		}
-		else {
-			cvarManager->log("Bad response");
-			cvarManager->getCvar("RLS_GoalSongStatus").setValue("Invalid ID. Error: " + std::to_string(res.status_code));
-			return std::wstring(L"");
-		}
-	}
-	auto trackResponse = json::parse(res.text);
-	if (!trackResponse["preview_url"].is_null()) {
-		std::string previewUrl = trackResponse["preview_url"];
-		cvarManager->log("Got preview URL: " + previewUrl);
-		return RocketLeagueSpotify::DownloadPreview(songId, previewUrl);
-	}
-	else {
-		cvarManager->getCvar("RLS_GoalSongStatus").setValue("No preview available :(");
-		cvarManager->log("No preview URL available");
-	}
-	return std::wstring(L"");
-}
-
-void RocketLeagueSpotify::AuthenticateSpotify() {
-	auto future_token = cpr::PostCallback([&](cpr::Response res) {
-		cvarManager->log(spotifyCredential);
-		cvarManager->log("AUTH");
-		cvarManager->log(std::to_string(res.status_code));
-		cvarManager->log(res.text);
-		auto authResponse = json::parse(res.text);
-		std::string token = authResponse["access_token"];
-		cvarManager->log(token);
-		spotifyToken = token;
-
-		return token;
-		},
-		cpr::Url{ "https://accounts.spotify.com/api/token" },
-			cpr::Header{ { "Authorization", "Basic " + spotifyCredential} },
-			cpr::Parameters{ { "grant_type", "client_credentials" } });
-	// Sometime later
-	//if (future_text.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
-	//	cvarManager->log("GET RESULT");
-	//}
 }
