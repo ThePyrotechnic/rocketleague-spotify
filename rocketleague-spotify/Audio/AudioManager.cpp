@@ -23,8 +23,8 @@ AudioManager::AudioManager() {
 HSTREAM AudioManager::PlaySoundFromFile(std::wstring file) {
 
 	HSTREAM stream = BASS_StreamCreateFile(FALSE, file.c_str(), 0, 0, 0);
-	BASS_ChannelPlay(stream, true);
-
+	int code = BASS_ChannelPlay(stream, true);
+	if (code != 0) { lastError = code; }
 	return stream;
 }
 
@@ -35,9 +35,11 @@ int AudioManager::StopSound(HSTREAM s) {
 
 	BASS_ChannelStop(s);
 	int code = BASS_ErrorGetCode();
-	if (code != 0) return code;
+	if (code != 0) { lastError = code; return code; }
 	BASS_StreamFree(s);
-	return BASS_ErrorGetCode();
+	code = BASS_ErrorGetCode();
+	if (code != 0) { lastError = code; }
+	return code;
 }
 
 float AudioManager::GetMasterVolume() {
@@ -46,5 +48,6 @@ float AudioManager::GetMasterVolume() {
 
 void AudioManager::SetMasterVolume(float volume) {
 	this->volume = volume;  // Preserve float value
-	BASS_SetConfig(BASS_CONFIG_GVOL_STREAM, volume * 100.0f);
+	int code = BASS_SetConfig(BASS_CONFIG_GVOL_STREAM, volume * 100.0f);
+	if (code != 0) { lastError = code; }
 }

@@ -145,6 +145,7 @@
       <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)include;$(APPDATA)\bakkesmod\bakkesmod\bakkesmodsdk\include</AdditionalIncludeDirectories>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <ForcedIncludeFiles>%(ForcedIncludeFiles)</ForcedIncludeFiles>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -164,6 +165,7 @@ xcopy /y "$(SolutionDir)RocketLeagueSpotify.set" "$(APPDATA)\bakkesmod\bakkesmod
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Audio\AudioManager.cpp" />
+    <ClCompile Include="Cache\CacheManager.cpp" />
     <ClCompile Include="RocketLeagueSpotify.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
@@ -172,6 +174,7 @@ xcopy /y "$(SolutionDir)RocketLeagueSpotify.set" "$(APPDATA)\bakkesmod\bakkesmod
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Audio\AudioManager.h" />
+    <ClInclude Include="Cache\CacheManager.h" />
     <ClInclude Include="RocketLeagueSpotify.h" />
     <ClInclude Include="stdafx.h" />
   </ItemGroup>

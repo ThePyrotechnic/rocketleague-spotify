@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "Audio/AudioManager.h"
+#include "Cache/CacheManager.h"
 
 #include "bakkesmod/wrappers/includes.h"
 #include "bakkesmod/wrappers/GameObject/Stats/StatEventWrapper.h"
@@ -20,18 +21,21 @@ void RocketLeagueSpotify::onLoad() {
 	bInMenu = true;
 	fadeInTimeCVar = std::make_shared<int>(6);
 	fadeOutTimeCVar = std::make_shared<int>(64);
+	goalPlaylistCVar = std::make_shared <std::string>("random");
 	goalSongId = "";
 	goalSongFilePath = L"";
 
-	cvarManager->registerCvar("RLS_Master", "50", "Master volume", true, true, 0, true, 100);
+	cvarManager->registerCvar("RLS_Master", "25", "Master volume", true, true, 0, true, 100);
 	cvarManager->registerCvar("RLS_FadeInTime", "6", "Fade-in duration in seconds", true, true, 1, true, 10000).bindTo(fadeInTimeCVar);
 	cvarManager->registerCvar("RLS_FadeOutTime", "64", "Fade-out duration in seconds", true, true, 1, true, 10000).bindTo(fadeOutTimeCVar);
-	cvarManager->registerCvar("RLS_GoalSong", "4tcPIwy0UvLYjhXLrMyx89", "Goal song Spotify ID");
+	cvarManager->registerCvar("RLS_GoalSong", "4tcPIwy0UvLYjhXLrMyx89", "Goal song Spotify ID (unused)");
 	cvarManager->registerCvar("RLS_GoalSongStatus", "Initializing ...", "Goal song status");
+	cvarManager->registerCvar("RLS_GoalPlaylist", "random", "Goal Playlist").bindTo(goalPlaylistCVar);
 
 	cvarManager->getCvar("RLS_Master").addOnValueChanged(std::bind(&RocketLeagueSpotify::CVarMasterVolume, this, std::placeholders::_1, std::placeholders::_2));
 	cvarManager->getCvar("RLS_GoalSong").addOnValueChanged(std::bind(&RocketLeagueSpotify::CVarGoalSong, this, std::placeholders::_1, std::placeholders::_2));
-	
+	cvarManager->getCvar("RLS_GoalPlaylist").addOnValueChanged(std::bind(&RocketLeagueSpotify::CVarGoalPlaylist, this, std::placeholders::_1, std::placeholders::_2));
+
 	gameWrapper->HookEvent("Function GameEvent_Soccar_TA.PostGoalScored.StartReplay", std::bind(&RocketLeagueSpotify::ReplayStart, this, std::placeholders::_1));
 	gameWrapper->HookEvent("Function TAGame.Replay_TA.StopPlayback", std::bind(&RocketLeagueSpotify::ReplayEnd, this, std::placeholders::_1));
 	gameWrapper->HookEventWithCallerPost<ServerWrapper>("Function TAGame.GFxHUD_TA.HandleStatTickerMessage", std::bind(&RocketLeagueSpotify::HandleStatEvent, this, std::placeholders::_1, std::placeholders::_2));
@@ -48,6 +52,9 @@ void RocketLeagueSpotify::onLoad() {
 	_wdupenv_s(&appdata, &len, L"APPDATA");
 	modDir = std::wstring(&appdata[0], &appdata[len - 1]) + LR"(\bakkesmod\bakkesmod\rocketleague-spotify)";
 
+	audioDir = modDir + LR"(\assets\audio\)";
+	cacheManager = CacheManager(audioDir);
+
 	std::ifstream i(modDir + LR"(\config.json)");
 	//std::ostringstream tmp;
 	//tmp << i.rdbuf();
@@ -59,13 +66,26 @@ void RocketLeagueSpotify::onLoad() {
 	cvarManager->log("Spotify Credential: " + spotifyCredential);
 	RocketLeagueSpotify::AuthenticateSpotify();
 
-	for (std::string songId : randomSongs) {
-		RocketLeagueSpotify::DownloadSong(songId);
-		std::wstring wSongId = std::wstring(songId.length(), L' ');
-		std::copy(songId.begin(), songId.end(), wSongId.begin());
-		std::wstring filePath = modDir + LR"(\assets\audio\)" + wSongId + L".mp3";
-		songPaths.push_back(filePath);
+	songPaths.insert({ "random", std::vector<std::wstring>() });
+	songPaths.insert({ "funny", std::vector<std::wstring>() });
+
+	for (std::string songId : randomSongs) {  // TODO make this a function and clean up the whole flow
+		std::wstring filePath = RocketLeagueSpotify::DownloadSong(songId);
+		if (!filePath.empty())
+			songPaths["random"].push_back(filePath);	
 	}
+	for (std::string songId : funnySongs) {
+		std::wstring filePath = RocketLeagueSpotify::DownloadSong(songId);
+		if (!filePath.empty())
+			songPaths["funny"].push_back(filePath);
+	}
+	for (std::string songId : america) {
+		std::wstring filePath = RocketLeagueSpotify::DownloadSong(songId);
+		if (!filePath.empty())
+			songPaths["america"].push_back(filePath);
+	}
+	cvarManager->log("RawRandom: " + std::to_string(randomSongs.size()) + " RawFunny: " + std::to_string(funnySongs.size()));
+	cvarManager->log("random: " + std::to_string(songPaths["random"].size()) + " funny: " + std::to_string(songPaths["funny"].size()));
 	//RocketLeagueSpotify::DownloadSong(cvarManager->getCvar("RLS_GoalSong").getStringValue());
 
 	Tick();
@@ -111,6 +131,13 @@ void RocketLeagueSpotify::Tick() {
 	}
 }
 
+std::wstring RocketLeagueSpotify::StrToWStr(std::string str) {
+	std::wstring wstr = std::wstring(str.length(), L' ');
+	std::copy(str.begin(), str.end(), wstr.begin());
+	
+	return wstr;
+}
+
 void RocketLeagueSpotify::FadeMasterVolume(int target, int timeToFade) {
 	timeSinceFade = 0.f;
 	fadeTarget = target;
@@ -138,6 +165,10 @@ void RocketLeagueSpotify::CVarGoalSong(std::string oldValue, CVarWrapper cvar) {
 	DownloadSong(newSong);
 }
 
+void RocketLeagueSpotify::CVarGoalPlaylist(std::string oldValue, CVarWrapper cvar) {
+
+}
+
 void RocketLeagueSpotify::Render(CanvasWrapper canvas) {
 	if (gameWrapper->IsInOnlineGame() || gameWrapper->IsSpectatingInOnlineGame()) {
 		bInMenu = false;
@@ -158,12 +189,11 @@ struct TickerStruct {
 };
 
 void RocketLeagueSpotify::ReplayStart(std::string eventName) {
-	if (goalSongFilePath.empty()) return;
-
-	int randomIndex = rand() % songPaths.size();
+	int randomIndex = rand() % songPaths[*goalPlaylistCVar].size();
 
 	FadeIn(*fadeInTimeCVar);
-	HSTREAM s = audioManager.PlaySoundFromFile(songPaths[randomIndex]);
+	cvarManager->log(std::to_wstring(randomIndex) + songPaths[*goalPlaylistCVar][randomIndex]);
+	HSTREAM s = audioManager.PlaySoundFromFile(songPaths[*goalPlaylistCVar][randomIndex]);
 	replaySounds.push_back(s);
 }
 
@@ -181,56 +211,68 @@ void RocketLeagueSpotify::HandleStatEvent(ServerWrapper caller, void* args) {
 
 }
 
-void RocketLeagueSpotify::DownloadPreview(std::string songId, std::string previewUrl) {
-	auto future_preview = cpr::GetCallback([&](cpr::Response res) {
-		cvarManager->log(std::to_string(res.status_code));
+std::wstring RocketLeagueSpotify::DownloadPreview(std::string songId, std::string previewUrl) {
+	auto res = cpr::Get(cpr::Url{ previewUrl });
+	cvarManager->log(std::to_string(res.status_code));
+	if (res.status_code != 200) return std::wstring(L"");
 
-		std::wstring wSongId = std::wstring(songId.length(), L' ');
-		std::copy(songId.begin(), songId.end(), wSongId.begin());
-		std::wstring filePath = modDir + LR"(\assets\audio\)" + wSongId + L".mp3";
-		std::fstream previewFile = std::fstream(filePath, std::ios::out | std::ios::binary);
-		const char* content = res.text.c_str();
-		std::stringstream sstream(res.header["Content-Length"]);
-		size_t size;
-		sstream >> size;
-		previewFile.write(content, size);
-		previewFile.close();
-		cvarManager->log("Downloaded song");
-		cvarManager->getCvar("RLS_GoalSongStatus").setValue("Downloaded!");
-		goalSongFilePath = filePath;
-		}, cpr::Url{ previewUrl });
+	std::wstring wSongId = std::wstring(songId.length(), L' ');
+	std::copy(songId.begin(), songId.end(), wSongId.begin());
+	std::wstring filePath = modDir + LR"(\assets\audio\)" + wSongId + L".mp3";
+	std::fstream previewFile = std::fstream(filePath, std::ios::out | std::ios::binary);
+	const char* content = res.text.c_str();
+	std::stringstream sstream(res.header["Content-Length"]);
+	size_t size;
+	sstream >> size;
+	previewFile.write(content, size);
+	previewFile.close();
+	cvarManager->log("Downloaded song");
+	cvarManager->getCvar("RLS_GoalSongStatus").setValue("Downloaded!");
+	goalSongFilePath = filePath;
+	return filePath;
 }
 
-void RocketLeagueSpotify::DownloadSong(std::string songId) {
+std::wstring RocketLeagueSpotify::DownloadSong(std::string songId) {
 	if (songId.empty()) {
 		cvarManager->getCvar("RLS_GoalSongStatus").setValue("Invalid ID");
-		return;
+		return std::wstring(L"");
 	}
 
-	auto future_track = cpr::GetCallback([&](cpr::Response res) {
-		cvarManager->log("getting song preview url");
-		cvarManager->getCvar("RLS_GoalSongStatus").setValue("Downloading ...");
-		cvarManager->log(std::to_string(res.status_code));
-		if (res.status_code != 200) {
-			cvarManager->log("Bad response");
-			cvarManager->getCvar("RLS_GoalSongStatus").setValue("Invalid ID. Error: " + std::to_string(res.status_code));
-			return std::string("");
-		}
-		auto trackResponse = json::parse(res.text);
-		std::string previewUrl;
-		if (!trackResponse["preview_url"].is_null()) {
-			previewUrl = trackResponse["preview_url"];
-			cvarManager->log("Got preview URL: " + previewUrl);
-			RocketLeagueSpotify::DownloadPreview(songId, previewUrl);
+	std::wstring filePath = cacheManager.GetCachedSong(StrToWStr(songId));
+	if (!filePath.empty()) {
+		cvarManager->getCvar("RLS_GoalSongStatus").setValue("Cached!");
+		return filePath;
+	}
+
+	cvarManager->log("Not cached: " + songId);
+
+	auto res = cpr::Get(cpr::Url{ "https://api.spotify.com/v1/tracks/" + songId },
+		cpr::Header{ { "Authorization", "Bearer " + spotifyToken } });
+	cvarManager->log("getting song preview url");
+	cvarManager->getCvar("RLS_GoalSongStatus").setValue("Downloading ...");
+	cvarManager->log(std::to_string(res.status_code));
+	if (res.status_code != 200) {
+		if (res.status_code == 401) {
+			AuthenticateSpotify();
+			return DownloadSong(songId);
 		}
 		else {
-			cvarManager->getCvar("RLS_GoalSongStatus").setValue("No preview available :(");
-			cvarManager->log("No preview URL available");
+			cvarManager->log("Bad response");
+			cvarManager->getCvar("RLS_GoalSongStatus").setValue("Invalid ID. Error: " + std::to_string(res.status_code));
+			return std::wstring(L"");
 		}
-		return previewUrl;
-		},
-		cpr::Url{ "https://api.spotify.com/v1/tracks/" + songId },
-			cpr::Header{ { "Authorization", "Bearer " + spotifyToken } });
+	}
+	auto trackResponse = json::parse(res.text);
+	if (!trackResponse["preview_url"].is_null()) {
+		std::string previewUrl = trackResponse["preview_url"];
+		cvarManager->log("Got preview URL: " + previewUrl);
+		return RocketLeagueSpotify::DownloadPreview(songId, previewUrl);
+	}
+	else {
+		cvarManager->getCvar("RLS_GoalSongStatus").setValue("No preview available :(");
+		cvarManager->log("No preview URL available");
+	}
+	return std::wstring(L"");
 }
 
 void RocketLeagueSpotify::AuthenticateSpotify() {

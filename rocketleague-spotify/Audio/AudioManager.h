@@ -1,10 +1,10 @@
 #pragma once
 
 class AudioManager {
-private:
+public:
+	int lastError = 0;
 	float volume;
 	std::vector<HSTREAM> activeStreams;
-public:
 	AudioManager();
 	int error = 999;
 	float GetMasterVolume();

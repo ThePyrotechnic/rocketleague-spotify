@@ -7,21 +7,24 @@ class RocketLeagueSpotify : public BakkesMod::Plugin::BakkesModPlugin {
 private:
 	std::shared_ptr<int> fadeInTimeCVar;
 	std::shared_ptr<int> fadeOutTimeCVar;
+	std::shared_ptr <std::string> goalPlaylistCVar;
 
 	LinearColor textColor;
 
 	AudioManager audioManager;
+	CacheManager cacheManager;
 	std::string spotifyCredential;
 	std::string spotifyToken;
 	bool bInMenu;
 	UniqueIDWrapper* playerID;
 	std::string playerIDString;
 	std::wstring modDir;
-	void DownloadPreview(std::string, std::string);
-	void DownloadSong(std::string songId);
+	std::wstring audioDir;
+	std::wstring DownloadPreview(std::string, std::string);
+	std::wstring DownloadSong(std::string songId);
 	void AuthenticateSpotify();
 	void FadeMasterVolume(int, int);
-
+	static std::wstring StrToWStr(std::string);
 	clock_t lastFadeTime = 0;
 	double timeSinceFade = 0.f;
 	double fadeDuration = 0.f;
@@ -32,7 +35,89 @@ private:
 	std::string goalSongId;
 	std::wstring goalSongFilePath;
 
-	std::vector<std::wstring> songPaths;
+	std::unordered_map<std::string, std::vector<std::wstring>> songPaths;
+
+	std::vector<std::string> america = {
+		"5QEejYy2AoWga6cdVq7MnS",
+		"229HcoVMtqCUU6vY8Yyhnk"
+	};
+
+	std::vector<std::string> funnySongs = {
+		"29qFlNOssruDfoEN8vN2Uu",
+		"1sqoFAF7asvG3Y7ELGsT5M",
+		"01b5BkzCdW9eLvbiFIN6oY",
+		"3uYDO9dPLTVrgfwg7EYXSf",
+		"4kPvYCqzHg48ZHCiBXnmRI",
+		"0iGPqIcglmqPUTMv7X2VEb",
+		"5cqKPQnDAGgAh6d9x0X7iD",
+		"6M14BiCN00nOsba4JaYsHW",
+		"6CRtIYDga4VKW5sV5rfAL3",
+		"4qDHt2ClApBBzDAvhNGWFd",
+		"1PmXm1881bonBI1AlG5uaH",
+		"13ZsIACMHaWi8F1va20QZW",
+		"3PqShDqDiQljnuLeGCmXjB",
+		"56KyV36puztkiJ62ca3D1t",
+		"6L33GgWMpd53M1vldLstrW",
+		"2zF7IDI6UsLXpwl3FjukPS",
+		"3cfOd4CMv2snFaKAnMdnvK",
+		"1nbzG1yqmbg8b7EByobVRW",
+		"2LELFaNglE9B5xlcmd4qtQ",
+		"5e0O7MjhNHq9G67qDFM8nR",
+		"7Gts6qFgl7b4ANALcbC1cc",
+		"1B75hgRqe7A4fwee3g3Wmu",
+		"24CXuh2WNpgeSYUOvz14jk",
+		"1mNSomylino1Hoaw3MzCC8",
+		"79VupVk4BWNqYcfXe5oVOh",
+		"0trTpNYmHAK3EihaZBd2h6",
+		"1xOufOKaxfBlxG6l7ytHZ0",
+		"1FL7eUG80aeUeyMO2N4btN",
+		"6A3pJMpqcz3maI3H0yBLC9",
+		"131yybV7A3TmC34a0qE8u8",
+		"4C64ZXG24vRJ4lwkxCA24G",
+		"1iOHLlEsMbgJfYBFWy4TjG",
+		"3JOVTQ5h8HGFnDdp4VT3MP",
+		"3aPkMnaq49WpMxY0KAKwBY",
+		"1Gk5fwOwrZs379XdVzQ1gq",
+		"4jDmJ51x1o9NZB5Nxxc7gY",
+		"6FLwmdmW77N1Pxb1aWsZmO",
+		"3IDyCfYrxmQMOH0aXpbm91",
+		"4cOdK2wGLETKBW3PvgPWqT",
+		"1Vchex0xowRj9k59RLvRfo",
+		"3KWpkpZRx6mJ3W5jGCLXnY",
+		"2WfaOiMkCvy7F5fcp2zZ8L",
+		"0ouSkB2t2fGeW60MPcvmXl",
+		"0YveezON7jpiaHA8fnUHxN",
+		"5dulYd9AKIprMoF837OTDb",
+		"5qQ2Bnai4C9NQ1vWBl7yeX",
+		"5sRQNFKwE9kgNleZgnCpgw",
+		"4nnHlGaBwJHb1rBetqj0Yl",
+		"1V2MT0QZbqNUUr2fmSxSFE",
+		"7MwwPyZJ7UKFROj2oVnH6R",
+		"4ySncWxaMZr4UpebQEPZ2m",
+		"33LC84JgLvK2KuW43MfaNq",
+		"2IHaGyfxNoFPLJnaEg4GTs",
+		"5E3n459RNgTgWjuNDivIvC",
+		"4NN5xMoyYbcRsc7ZS8THcK",
+		"66TRwr5uJwPt15mfFkzhbi",
+		"2Mik4RyMTMGXscX9QGiDoX",
+		"4LwU4Vp6od3Sb08CsP99GC",
+		"7w87IxuO7BDcJ3YUqCyMTT",
+		"1jWiqP0Rm8r3UyfeeN2vRT",
+		"2yAVzRiEQooPEJ9SYx11L3",
+		"2Fs18NaCDuluPG1DHGw1XG",
+		"0KFkqcntA7fnGuLo2mRAvh",
+		"4mn9xkejyNn8EBKhrOf3aW",
+		"3sJ1HwrSpTVosPhJHFbRLK",
+		"7EpoeKjtxThtWkkrpVj4fH",
+		"2cF3dqa4vwazzaUlhRXA1I",
+		"7KphWfHFIvAWEV1opc5PMT",
+		"33t80N4dlcMZhTCBJHoAhQ",
+		"4yiGLfzCc2jdByeQ2PIHXA",
+		"4kwk7NNS5oieONL98Dt5cV",
+		"6MCU7EJ155Ukx2Q6gbScNN",
+		"70Vbl5WZallZei6vuwVQeX",
+		"15RSD04RKmM1fjrBONNtqK"
+	};
 
 	std::vector<std::string> randomSongs = {
 		"7tBa1miuCyMBRAT3n3MEU2",
@@ -80,5 +165,6 @@ public:
 	void ReplayEnd(std::string);
 	void CVarMasterVolume(std::string, CVarWrapper);
 	void CVarGoalSong(std::string, CVarWrapper);
+	void CVarGoalPlaylist(std::string, CVarWrapper);
 	void Tick();
 };

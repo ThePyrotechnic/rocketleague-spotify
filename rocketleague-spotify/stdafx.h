@@ -1,10 +1,14 @@
 #pragma once
+#define _SILENCE_CXX17_C_HEADER_DEPRECATION_WARNING
+
+#include <filesystem>
 #include <fstream>
 #include <math.h>
 #include <stdexcept>
 #include <stdio.h>
 #include <string>
 #include <stdlib.h>
+#include <unordered_map>
 
 #pragma comment( lib, "bass.lib" )
 #include "bass.h"

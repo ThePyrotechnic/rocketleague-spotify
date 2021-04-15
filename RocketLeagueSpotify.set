@@ -4,3 +4,4 @@ Rocket League + Spotify
 5|Fade-out duration in seconds|RLS_FadeOutTime|1|10000
 12|Goal song Spotify ID|RLS_GoalSong
 9|$RLS_GoalSongStatus$
+6|Goal playlist|RLS_GoalPlaylist|random@random&funny@funny&america@america
