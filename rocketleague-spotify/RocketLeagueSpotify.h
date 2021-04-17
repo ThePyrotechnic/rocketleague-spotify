@@ -2,10 +2,13 @@
 #pragma comment( lib, "pluginsdk.lib" )
 #include "bakkesmod/plugin/bakkesmodplugin.h"
 
+#include "Audio/AudioManager.h"
+#include "Spotify/SpotifyManager.h"
+
 
 class RocketLeagueSpotify : public BakkesMod::Plugin::BakkesModPlugin {
 public:
-	RocketLeagueSpotify();
+	//RocketLeagueSpotify();
 	void onLoad() override;
 	void onUnload() override;
 
@@ -27,15 +30,11 @@ public:
 
 	AudioManager audioManager;
 	SpotifyManager spotifyManager;
-	CacheManager cacheManager;
 	bool bInMenu;
 	UniqueIDWrapper* playerID;
 	std::string playerIDString;
 	std::wstring modDir;
 	std::wstring audioDir;
-	std::wstring DownloadPreview(std::string, std::string);
-	std::wstring DownloadSong(std::string songId);
-	void AuthenticateSpotify();
 	void FadeMasterVolume(int, int);
 	static std::wstring StrToWStr(std::string);
 	clock_t lastFadeTime = 0;
@@ -49,11 +48,6 @@ public:
 	std::wstring goalSongFilePath;
 
 	std::unordered_map<std::string, std::vector<std::wstring>> songPaths;
-
-	std::vector<std::string> america = {
-		"5QEejYy2AoWga6cdVq7MnS",
-		"229HcoVMtqCUU6vY8Yyhnk"
-	};
 
 	std::vector<std::string> funnySongs = {
 		"29qFlNOssruDfoEN8vN2Uu",
