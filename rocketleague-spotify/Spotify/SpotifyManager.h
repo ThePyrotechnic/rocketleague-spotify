@@ -1,11 +1,62 @@
 #pragma once
-//#include "bakkesmod/plugin/bakkesmodplugin.h"
-//#include "bakkesmod/wrappers/includes.h"
-//#include "nlohmann/json.hpp"
+
 #include <bakkesmod/wrappers/cvarmanagerwrapper.h>
 
 #include "Cache/CacheManager.h"
 
+class Song {
+public:
+	std::string id;
+	std::string previewUrl;
+	std::wstring name;
+	std::wstring artist;
+	std::wstring album;
+	std::string albumArtUrl;
+	std::wstring path;
+
+	Song(std::string id,
+		std::string previewUrl,
+		std::wstring name,
+		std::wstring artist,
+		std::wstring album,
+		std::string albumArtUrl,
+		std::wstring path) {
+
+		this->id = id;
+		this->previewUrl = previewUrl;
+		this->name = name;
+		this->artist = artist;
+		this->album = album;
+		this->albumArtUrl = albumArtUrl;
+		this->path = path;
+	}
+
+	Song() {
+
+	}
+
+	//std::wstring toWString() {
+	//	return RocketLeagueSpotify::StrToWStr(id) + L" | " + RocketLeagueSpotify::StrToWStr(previewUrl) + L" | " + name + L" | " + artist + L" | " + album + L" | " + RocketLeagueSpotify::StrToWStr(albumArtUrl);
+	//}
+};
+
+class SpotifyPlaylist {
+public:
+	std::vector<Song> songs;
+	std::wstring name;
+	std::string id;
+	unsigned seed;
+	int index = -1;
+
+	SpotifyPlaylist() {
+
+	}
+
+	int nextIndex() {
+		index = (index + 1) % songs.size();
+		return index;
+	}
+};
 
 class SpotifyManager {
 public:
@@ -20,9 +71,12 @@ public:
 	CacheManager cacheManager;
 
 	int Authenticate();
-	std::vector<std::wstring> DownloadPlaylist(std::string);
-	std::wstring DownloadPreview(std::string, std::string);
-	std::wstring DownloadSong(std::string);
-	std::vector<std::wstring> DownloadSongs(std::vector<std::string>);
+	//SpotifyPlaylist GetPlaylist(std::string);
+	//Song GetSong(std::string);
+	//std::vector<Song> GetSongs(std::vector<std::string>);
+	std::wstring GetSongPath(std::string);
 
+	void DownloadPreview(Song);
+	void DownloadPreviews(std::vector<Song>);
+	SpotifyPlaylist GetPlaylist(std::string playlistId, bool doRetry = true);
 };

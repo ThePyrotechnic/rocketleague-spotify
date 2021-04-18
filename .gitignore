@@ -2,4 +2,4 @@ x64
 Release
 .vs
 *.user
-rocketleague-spotify/config.json
+config.json

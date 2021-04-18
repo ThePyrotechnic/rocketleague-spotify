@@ -39,7 +39,6 @@ void RocketLeagueSpotify::onLoad() {
 	cvarManager->registerCvar("RLS_GoalPlaylist", "1FLmlXw521Ap4RT1chb1wi", "Goal Playlist").bindTo(goalPlaylistCVar);
 
 	cvarManager->getCvar("RLS_Master").addOnValueChanged(std::bind(&RocketLeagueSpotify::CVarMasterVolume, this, std::placeholders::_1, std::placeholders::_2));
-	cvarManager->getCvar("RLS_GoalSong").addOnValueChanged(std::bind(&RocketLeagueSpotify::CVarGoalSong, this, std::placeholders::_1, std::placeholders::_2));
 
 	gameWrapper->HookEvent("Function GameEvent_Soccar_TA.PostGoalScored.StartReplay", std::bind(&RocketLeagueSpotify::ReplayStart, this, std::placeholders::_1));
 	gameWrapper->HookEvent("Function TAGame.Replay_TA.StopPlayback", std::bind(&RocketLeagueSpotify::ReplayEnd, this, std::placeholders::_1));
@@ -65,11 +64,10 @@ void RocketLeagueSpotify::onLoad() {
 	//std::string s = tmp.str();
 	//cvarManager->log("TEST: " + s);
 	cvarManager->getCvar("RLS_GoalSongStatus").setValue("Downloading playlist ...");
-	std::vector<std::wstring> filePaths = spotifyManager.DownloadPlaylist(*goalPlaylistCVar);
-	cvarManager->getCvar("RLS_GoalSongStatus").setValue("Downloaded " + std::to_string(filePaths.size()) + " songs!");
-	for (std::wstring filePath : filePaths) {
-		songPaths[*goalPlaylistCVar].push_back(filePath);
-	}
+	SpotifyPlaylist playlist = spotifyManager.GetPlaylist(*goalPlaylistCVar);
+	cvarManager->getCvar("RLS_GoalSongStatus").setValue("Downloaded playlist: " + playlist.id);
+	cvarManager->getCvar("RLS_GoalSongStatus").setValue("Downloaded " + std::to_string(playlist.songs.size()) + " songs!");
+	playlists[*goalPlaylistCVar] = playlist;
 	
 	Tick();
 }
@@ -127,14 +125,6 @@ void RocketLeagueSpotify::CVarMasterVolume(std::string oldValue, CVarWrapper cva
 	audioManager.SetMasterVolume(cvar.getIntValue());
 }
 
-void RocketLeagueSpotify::CVarGoalSong(std::string oldValue, CVarWrapper cvar) {
-	std::string newSong = cvar.getStringValue();
-
-	if (newSong.empty()) return;
-
-	spotifyManager.DownloadSong(newSong);
-}
-
 void RocketLeagueSpotify::Render(CanvasWrapper canvas) {
 	if (gameWrapper->IsInOnlineGame() || gameWrapper->IsSpectatingInOnlineGame()) {
 		bInMenu = false;
@@ -155,11 +145,13 @@ struct TickerStruct {
 };
 
 void RocketLeagueSpotify::ReplayStart(std::string eventName) {
-	int randomIndex = rand() % songPaths[*goalPlaylistCVar].size();
+	cvarManager->log("here");
+	int index = playlists[*goalPlaylistCVar].nextIndex();
+	cvarManager->log(L"playing: " + playlists[*goalPlaylistCVar].songs[index].name);
 
 	FadeIn(*fadeInTimeCVar);
-	cvarManager->log(std::to_wstring(randomIndex) + songPaths[*goalPlaylistCVar][randomIndex]);
-	HSTREAM s = audioManager.PlaySoundFromFile(songPaths[*goalPlaylistCVar][randomIndex]);
+	cvarManager->log(std::to_wstring(index) + playlists[*goalPlaylistCVar].songs[index].path);
+	HSTREAM s = audioManager.PlaySoundFromFile(playlists[*goalPlaylistCVar].songs[index].path);
 	replaySounds.push_back(s);
 }
 

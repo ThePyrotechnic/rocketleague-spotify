@@ -19,8 +19,7 @@ public:
 	void ReplayStart(std::string);
 	void ReplayEnd(std::string);
 	void CVarMasterVolume(std::string, CVarWrapper);
-	void CVarGoalSong(std::string, CVarWrapper);
-	void Tick();
+ 	void Tick();
 
 	std::shared_ptr<int> fadeInTimeCVar;
 	std::shared_ptr<int> fadeOutTimeCVar;
@@ -47,7 +46,7 @@ public:
 	std::string goalSongId;
 	std::wstring goalSongFilePath;
 
-	std::unordered_map<std::string, std::vector<std::wstring>> songPaths;
+	std::unordered_map<std::string, SpotifyPlaylist> playlists;
 
 	std::vector<std::string> funnySongs = {
 		"29qFlNOssruDfoEN8vN2Uu",
