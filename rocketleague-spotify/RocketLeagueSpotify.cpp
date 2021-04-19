@@ -20,7 +20,7 @@ void RocketLeagueSpotify::onLoad() {
 	bInMenu = true;
 	fadeInTimeCVar = std::make_shared<int>(6);
 	fadeOutTimeCVar = std::make_shared<int>(64);
-	goalPlaylistCVar = std::make_shared <std::string>("1FLmlXw521Ap4RT1chb1wi");
+	goalPlaylistCVar = std::make_shared <std::string>("7iVjuGSG2HPjvbJjFmKIaL");
 
 	// Joining any game: "Function Engine.PlayerInput.InitInputSystem"
 	// Game is starting: "Function OnlineGameJoinGame_X.WaitForAllPlayers.BeginState"
@@ -32,8 +32,8 @@ void RocketLeagueSpotify::onLoad() {
 	cvarManager->registerCvar("RLS_FadeInTime", "6", "Fade-in duration", true, true, 1, true, 10000).bindTo(fadeInTimeCVar);
 	cvarManager->registerCvar("RLS_FadeOutTime", "64", "Fade-out duration", true, true, 1, true, 10000).bindTo(fadeOutTimeCVar);
 	cvarManager->registerCvar("RLS_GoalPlaylistStatus", "Initializing ...", "Goal playlist status");
-	cvarManager->registerCvar("RLS_GoalPlaylist", "1FLmlXw521Ap4RT1chb1wi", "Goal Playlist").bindTo(goalPlaylistCVar);
-	cvarManager->registerCvar("RLS_WebEndpoint", "http://localhost:8000", "Web API endpoint");
+	cvarManager->registerCvar("RLS_GoalPlaylist", "7iVjuGSG2HPjvbJjFmKIaL", "Goal Playlist").bindTo(goalPlaylistCVar);
+	cvarManager->registerCvar("RLS_WebEndpoint", "https://rocketleague-spotify-api.herokuapp.com", "Web API endpoint");
 
 	cvarManager->getCvar("RLS_Master").addOnValueChanged(std::bind(&RocketLeagueSpotify::CVarMasterVolume, this, std::placeholders::_1, std::placeholders::_2));
 	cvarManager->getCvar("RLS_GoalPlaylist").addOnValueChanged(std::bind(&RocketLeagueSpotify::CVarGoalPlaylist, this, std::placeholders::_1, std::placeholders::_2));
@@ -73,9 +73,9 @@ void RocketLeagueSpotify::onUnload() {
 
 void RocketLeagueSpotify::Tick() {
 	deltaTime = 0.01667;  // ~60 fps
-	if (gameWrapper->GetOnlineGame().IsNull()) { seed = 0; connectedPlayers.clear();  }
+	if (gameWrapper->GetOnlineGame().IsNull()) { seed = 0; connectedPlayers.clear(); }
 
-	gameWrapper->SetTimeout([this](GameWrapper* gw) {
+	gameWrapper->SetTimeout([this](GameWrapper* gw) { 
 		this->Tick();
 	}, deltaTime);
 
@@ -162,9 +162,9 @@ void RocketLeagueSpotify::CheckPlayers(std::string e) {
 			connectedPlayers.push_back(data[a]["id"]);
 		}
 		std::sort(connectedPlayers.begin(), connectedPlayers.end());
-		auto rng = std::default_random_engine(seed);
+		std::default_random_engine rng = std::default_random_engine(seed);
 		for (std::string id : connectedPlayers) {
-			std::shuffle(songPaths[id].begin(), songPaths[id].end(), rng);
+			loadedPlaylists[id].Shuffle(rng);
 		}
 	}, .05f);
 }
@@ -206,17 +206,14 @@ void RocketLeagueSpotify::AddPlaylistForID(std::string IDString, std::string pla
 	if (IDString._Equal(playerIDString)) isPlayer = true;
 
 	if (isPlayer) cvarManager->getCvar("RLS_GoalPlaylistStatus").setValue("Downloading playlist ...");
-	std::vector<std::wstring> filePaths = spotifyManager.DownloadPlaylist(playlistID);
-	if (isPlayer) cvarManager->getCvar("RLS_GoalPlaylistStatus").setValue("Downloaded " + std::to_string(filePaths.size()) + " songs!");
+	SpotifyPlaylist playlist = spotifyManager.GetPlaylist(playlistID);
+	if (isPlayer) cvarManager->getCvar("RLS_GoalPlaylistStatus").setValue("Downloaded " + std::to_string(playlist.Size()) + " songs!");
 
-	if (filePaths.size() == 0) {
+	if (playlist.Size() == 0) {
 		cvarManager->log("New playlist is empty. Not overriding current playlist");
 	}
 
-	songPaths[IDString].clear();
-	for (std::wstring filePath : filePaths) {
-		songPaths[IDString].push_back(filePath);
-	}
+	loadedPlaylists[IDString] = playlist;
 
 	if (!isPlayer || gameWrapper->IsInOnlineGame() || gameWrapper->IsSpectatingInOnlineGame()) {
 		cvarManager->log("Won't update playlist in online game");
@@ -246,13 +243,13 @@ struct TickerStruct {
 };
 
 void RocketLeagueSpotify::ReplayStart(std::string eventName) {
-	if (songPaths[lastScorerId].size() == 0) { cvarManager->log("Empty playlist for " + lastScorerId); return; }
+	if (loadedPlaylists[lastScorerId].Size() == 0) { cvarManager->log("Empty playlist for " + lastScorerId); return; }
 
-	std::wstring nextSong = songPaths[lastScorerId].front();
+	Song nextSong = loadedPlaylists[lastScorerId].songs.front();
 
 	FadeIn(*fadeInTimeCVar);
-	cvarManager->log(L": " + nextSong);
-	HSTREAM s = audioManager.PlaySoundFromFile(nextSong);
+	cvarManager->log(L": " + nextSong.name);
+	HSTREAM s = audioManager.PlaySoundFromFile(nextSong.path);
 	replaySounds.push_back(s);
 	
 }
@@ -276,9 +273,9 @@ void RocketLeagueSpotify::HandleStatEvent(ServerWrapper caller, void* args) {
 		UniqueIDWrapper receiverId = receiver.GetUniqueIdWrapper();
 		lastScorerId = receiverId.GetIdString();
 
-		std::wstring nextSong = songPaths[lastScorerId].back();
-		songPaths[lastScorerId].push_front(nextSong);
-		songPaths[lastScorerId].pop_back();
+		Song nextSong = loadedPlaylists[lastScorerId].songs.back();
+		loadedPlaylists[lastScorerId].songs.push_front(nextSong);
+		loadedPlaylists[lastScorerId].songs.pop_back();
 
 		cvarManager->log(receiver.GetPlayerName().ToString() + " scored (" + receiverId.GetIdString() + ": " + statName + ")");
 	}

@@ -15,7 +15,6 @@ public:
 	void Render(CanvasWrapper);
 	void FadeIn(int);
 	void FadeOut(int);
-	void ShufflePlaylists();
 	void HandleStatEvent(ServerWrapper, void*);
 	void ReplayStart(std::string);
 	void ReplayEnd(std::string);
@@ -51,5 +50,5 @@ public:
 	unsigned int seed;
 	std::vector<std::string> connectedPlayers;
 
-	std::unordered_map<std::string, std::deque<std::wstring>> songPaths;
+	std::unordered_map<std::string, SpotifyPlaylist> loadedPlaylists;
 };

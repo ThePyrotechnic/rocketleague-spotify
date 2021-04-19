@@ -30,31 +30,19 @@ public:
 		this->albumArtUrl = albumArtUrl;
 		this->path = path;
 	}
-
-	Song() {
-
-	}
-
-	//std::wstring toWString() {
-	//	return RocketLeagueSpotify::StrToWStr(id) + L" | " + RocketLeagueSpotify::StrToWStr(previewUrl) + L" | " + name + L" | " + artist + L" | " + album + L" | " + RocketLeagueSpotify::StrToWStr(albumArtUrl);
-	//}
 };
 
 class SpotifyPlaylist {
 public:
-	std::vector<Song> songs;
+	std::deque<Song> songs;
 	std::wstring name;
 	std::string id;
 	unsigned seed;
 	int index = -1;
 
-	SpotifyPlaylist() {
-
-	}
-
-	int nextIndex() {
-		index = (index + 1) % songs.size();
-		return index;
+	size_t Size() { return songs.size(); }
+	void Shuffle(std::default_random_engine rng) {
+		std::shuffle(songs.begin(), songs.end(), rng);
 	}
 };
 
@@ -77,6 +65,6 @@ public:
 	std::wstring GetSongPath(std::string);
 
 	void DownloadPreview(Song);
-	void DownloadPreviews(std::vector<Song>);
+	void DownloadPreviews(std::deque<Song>);
 	SpotifyPlaylist GetPlaylist(std::string playlistId, bool doRetry = true);
 };
