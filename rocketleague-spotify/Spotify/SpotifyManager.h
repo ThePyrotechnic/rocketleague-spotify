@@ -3,48 +3,9 @@
 #include <bakkesmod/wrappers/cvarmanagerwrapper.h>
 
 #include "Cache/CacheManager.h"
+#include "Spotify/Song.h"
+#include "Spotify/SpotifyPlaylist.h"
 
-class Song {
-public:
-	std::string id;
-	std::string previewUrl;
-	std::wstring name;
-	std::wstring artist;
-	std::wstring album;
-	std::string albumArtUrl;
-	std::wstring path;
-
-	Song(std::string id,
-		std::string previewUrl,
-		std::wstring name,
-		std::wstring artist,
-		std::wstring album,
-		std::string albumArtUrl,
-		std::wstring path) {
-
-		this->id = id;
-		this->previewUrl = previewUrl;
-		this->name = name;
-		this->artist = artist;
-		this->album = album;
-		this->albumArtUrl = albumArtUrl;
-		this->path = path;
-	}
-};
-
-class SpotifyPlaylist {
-public:
-	std::deque<Song> songs;
-	std::wstring name;
-	std::string id;
-	unsigned seed;
-	int index = -1;
-
-	size_t Size() { return songs.size(); }
-	void Shuffle(std::default_random_engine rng) {
-		std::shuffle(songs.begin(), songs.end(), rng);
-	}
-};
 
 class SpotifyManager {
 public:

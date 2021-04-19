@@ -5,6 +5,7 @@
 #include <fstream>
 #include <math.h>
 #include <set>
+#include <deque>
 #include <stdexcept>
 #include <stdio.h>
 #include <string>

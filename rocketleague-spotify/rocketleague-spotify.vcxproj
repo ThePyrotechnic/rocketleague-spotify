@@ -169,7 +169,9 @@ xcopy /y "$(SolutionDir)RocketLeagueSpotify.set" "$(APPDATA)\bakkesmod\bakkesmod
     <ClCompile Include="Audio\AudioManager.cpp" />
     <ClCompile Include="Cache\CacheManager.cpp" />
     <ClCompile Include="RocketLeagueSpotify.cpp" />
+    <ClCompile Include="Spotify\Song.cpp" />
     <ClCompile Include="Spotify\SpotifyManager.cpp" />
+    <ClCompile Include="Spotify\SpotifyPlaylist.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
@@ -179,7 +181,9 @@ xcopy /y "$(SolutionDir)RocketLeagueSpotify.set" "$(APPDATA)\bakkesmod\bakkesmod
     <ClInclude Include="Audio\AudioManager.h" />
     <ClInclude Include="Cache\CacheManager.h" />
     <ClInclude Include="RocketLeagueSpotify.h" />
+    <ClInclude Include="Spotify\Song.h" />
     <ClInclude Include="Spotify\SpotifyManager.h" />
+    <ClInclude Include="Spotify\SpotifyPlaylist.h" />
     <ClInclude Include="stdafx.h" />
   </ItemGroup>
   <ItemGroup>
