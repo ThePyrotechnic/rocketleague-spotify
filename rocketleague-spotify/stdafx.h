@@ -10,6 +10,7 @@
 #include <string>
 #include <stdlib.h>
 #include <unordered_map>
+#include <thread>
 #include <random>
 
 #pragma comment( lib, "bass.lib" )
