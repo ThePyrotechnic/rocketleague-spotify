@@ -4,11 +4,13 @@
 #include <filesystem>
 #include <fstream>
 #include <math.h>
+#include <set>
 #include <stdexcept>
 #include <stdio.h>
 #include <string>
 #include <stdlib.h>
 #include <unordered_map>
+#include <random>
 
 #pragma comment( lib, "bass.lib" )
 #include "bass.h"

@@ -1,7 +1,5 @@
 Rocket League + Spotify
 5|Master volume|RLS_Master|0|100
-5|Fade-in duration in seconds|RLS_FadeInTime|1|10000
-5|Fade-out duration in seconds|RLS_FadeOutTime|1|10000
-12|Goal song Playlist ID|RLS_GoalSong
-9|$RLS_GoalSongStatus$
-12|Goal playlist|RLS_GoalPlaylist
+12|Goal playlist Spotify ID|RLS_GoalPlaylist
+9|$RLS_GoalPlaylistStatus$
+12|Web API endpoint|RLS_WebEndpoint

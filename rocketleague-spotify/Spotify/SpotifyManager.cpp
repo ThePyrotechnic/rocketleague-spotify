@@ -24,7 +24,7 @@ std::wstring SpotifyManager::DownloadPreview(std::string songId, std::string pre
 	std::wstring wSongId = RocketLeagueSpotify::StrToWStr(songId);
 
 	std::wstring filePath = cacheManager.GetCachedSong(wSongId);
-	if (!filePath.empty()) { cvarManager->log("song was cached!"); return filePath; }
+	if (!filePath.empty()) { return filePath; }
 
 	cpr::Response res = cpr::Get(cpr::Url{ previewUrl });
 	cvarManager->log(std::to_string(res.status_code));
@@ -52,13 +52,12 @@ std::wstring SpotifyManager::DownloadSong(std::string songId) {
 	std::wstring wSongId = RocketLeagueSpotify::StrToWStr(songId);
 
 	std::wstring filePath = cacheManager.GetCachedSong(wSongId);
-	if (!filePath.empty()) { cvarManager->log("song was cached!"); return filePath; }
+	if (!filePath.empty()) { return filePath; }
 
 	// https://developer.spotify.com/documentation/web-api/reference/#category-tracks
 	cpr::Response res = cpr::Get(
 		cpr::Url{ "https://api.spotify.com/v1/tracks/" + songId + "?market=US"},
 		cpr::Header{ { "Authorization", "Bearer " + token } });
-	cvarManager->log("getting song preview url");
 	cvarManager->log(std::to_string(res.status_code));
 	if (res.status_code != 200) {
 		cvarManager->log("Bad response");
@@ -68,7 +67,6 @@ std::wstring SpotifyManager::DownloadSong(std::string songId) {
 	std::string previewUrl;
 	if (!trackResponse["preview_url"].is_null()) {
 		previewUrl = trackResponse["preview_url"];
-		cvarManager->log("Got preview URL: " + previewUrl);
 		return SpotifyManager::DownloadPreview(songId, previewUrl);
 	}
 	else {
@@ -108,7 +106,6 @@ std::vector<std::wstring> SpotifyManager::DownloadSongs(std::vector<std::string>
 					std::string previewUrl = tracksResponse["tracks"][i]["preview_url"];
 					if (!previewUrl.empty()) {
 						std::wstring filePath = SpotifyManager::DownloadPreview(songIds[i], previewUrl);
-						cvarManager->log("Got preview URL for song: " + songIds[i] + ":" + previewUrl);
 						filePaths.push_back(filePath);
 					}
 					else {
@@ -148,7 +145,6 @@ std::vector<std::wstring> SpotifyManager::DownloadPlaylist(std::string playlistI
 			
 					std::wstring filePath = SpotifyManager::DownloadPreview(items[i]["track"]["id"], previewUrl);
 					if (!filePath.empty()) {
-						cvarManager->log("Got preview URL for song: " + id + ": " + previewUrl);
 						filePaths.push_back(filePath);
 					}
 				}
