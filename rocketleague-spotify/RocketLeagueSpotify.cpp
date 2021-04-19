@@ -273,6 +273,11 @@ void RocketLeagueSpotify::HandleStatEvent(ServerWrapper caller, void* args) {
 		UniqueIDWrapper receiverId = receiver.GetUniqueIdWrapper();
 		lastScorerId = receiverId.GetIdString();
 
+		if (loadedPlaylists.find(lastScorerId) == loadedPlaylists.end() || loadedPlaylists[lastScorerId].songs.empty()) {
+			cvarManager->log("No playlist for " + lastScorerId);
+			return;
+		}
+
 		Song nextSong = loadedPlaylists[lastScorerId].songs.back();
 		loadedPlaylists[lastScorerId].songs.push_front(nextSong);
 		loadedPlaylists[lastScorerId].songs.pop_back();
