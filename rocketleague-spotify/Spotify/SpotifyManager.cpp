@@ -20,7 +20,20 @@ SpotifyManager::SpotifyManager(std::shared_ptr<CVarManagerWrapper> cvarManager, 
 }
 
 void SpotifyManager::DownloadPreview(Song song) {
-	
+	std::wstring wSongId = RocketLeagueSpotify::StrToWStr(song.id);
+	std::wstring filePath = cacheManager.GetCachedSong(wSongId);
+	if (!filePath.empty()) { return; }
+
+	cpr::Response res = cpr::Get(cpr::Url{ song.previewUrl });
+	if (res.status_code == 200) {
+		std::fstream previewFile = std::fstream(song.path, std::ios::out | std::ios::binary);
+		const char* content = res.text.c_str();
+		std::stringstream sstream(res.header["Content-Length"]);
+		size_t size;
+		sstream >> size;
+		previewFile.write(content, size);
+		previewFile.close();
+	}
 }
 
 std::wstring SpotifyManager::GetSongPath(std::string songId) {
@@ -30,20 +43,7 @@ std::wstring SpotifyManager::GetSongPath(std::string songId) {
 
 void SpotifyManager::DownloadPreviews(std::deque<Song> songs) {
 	for (Song song : songs) {
-		std::wstring wSongId = RocketLeagueSpotify::StrToWStr(song.id);
-		std::wstring filePath = cacheManager.GetCachedSong(wSongId);
-		if (!filePath.empty()) { return; }
-
-		cpr::Response res = cpr::Get(cpr::Url{ song.previewUrl });
-		if (res.status_code == 200) {
-			std::fstream previewFile = std::fstream(song.path, std::ios::out | std::ios::binary);
-			const char* content = res.text.c_str();
-			std::stringstream sstream(res.header["Content-Length"]);
-			size_t size;
-			sstream >> size;
-			previewFile.write(content, size);
-			previewFile.close();
-		}
+		DownloadPreview(song);
 	}
 }
 
