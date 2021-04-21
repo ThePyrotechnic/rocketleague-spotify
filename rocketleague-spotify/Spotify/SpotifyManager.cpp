@@ -14,7 +14,6 @@ SpotifyManager::SpotifyManager(std::shared_ptr<CVarManagerWrapper> cvarManager, 
 	std::ifstream i(this->modDir + LR"(\config.json)");
 	i >> config;
 	credential = config["spotifyId:SecretBase64"];
-	this->cvarManager->log("Spotify Credential: " + credential);
 	Authenticate();
 	cacheManager = CacheManager(audioDir);
 }
@@ -47,6 +46,29 @@ void SpotifyManager::DownloadPreviews(std::deque<Song> songs) {
 	}
 }
 
+void SpotifyManager::ParsePlaylist(SpotifyPlaylist &playlist, json &items) {
+	for (int i = 0; i < items.size(); i++) {
+		if (!items[i]["track"].is_null() && !items[i]["track"]["preview_url"].is_null()) {
+
+			std::string previewUrl = items[i]["track"]["preview_url"];
+			std::string id = items[i]["track"]["id"];
+			std::wstring name = RocketLeagueSpotify::StrToWStr(items[i]["track"]["name"]);
+			std::wstring artist = RocketLeagueSpotify::StrToWStr(items[i]["track"]["artists"][0]["name"]);
+			std::wstring album = RocketLeagueSpotify::StrToWStr(items[i]["track"]["album"]["name"]);
+			std::string albumArtUrl = items[i]["track"]["album"]["images"][0]["url"];
+			std::wstring path = SpotifyManager::GetSongPath(id);
+
+			Song song(id, previewUrl, name, artist, album, albumArtUrl, path);
+			std::wstring output = RocketLeagueSpotify::StrToWStr(id) + L" | " + RocketLeagueSpotify::StrToWStr(previewUrl) + L" | " + name + L" | " + artist + L" | " + album + L" | " + RocketLeagueSpotify::StrToWStr(albumArtUrl);
+			//cvarManager->log(output);
+			playlist.songs.push_back(song);
+		}
+		else {
+			cvarManager->log("No preview URL for song: " + i);
+		}
+	}
+}
+
 SpotifyPlaylist SpotifyManager::GetPlaylist(std::string playlistId, bool doRetry) {
 
 	SpotifyPlaylist playlist = SpotifyPlaylist();
@@ -60,7 +82,6 @@ SpotifyPlaylist SpotifyManager::GetPlaylist(std::string playlistId, bool doRetry
 	cpr::Response res = cpr::Get(
 		cpr::Url{ "https://api.spotify.com/v1/playlists/" + playlistId + "?market=US" },
 		cpr::Header{ { "Authorization", "Bearer " + token } });
-	cvarManager->log("Playlist response: " +std::to_string(res.status_code));
 	if (res.status_code != 200) {
 		cvarManager->log("Bad response");
 		if (doRetry) {
@@ -69,34 +90,36 @@ SpotifyPlaylist SpotifyManager::GetPlaylist(std::string playlistId, bool doRetry
 		}
 	}
 	else {
-		auto playlistResponse = json::parse(res.text);
-		auto items = playlistResponse["tracks"]["items"];
-		cvarManager->log("Parsed playlist");
+		json playlistResponse = json::parse(res.text);
+		json items = playlistResponse["tracks"]["items"];
 		if (!items.is_null()) {
 			playlist.name = RocketLeagueSpotify::StrToWStr(playlistResponse["name"]);
-			for (int i = 0; i < items.size(); i++) {
-				if (!items[i]["track"].is_null() && !items[i]["track"]["preview_url"].is_null()) {
 
-					std::string previewUrl = items[i]["track"]["preview_url"];
-					std::string id = items[i]["track"]["id"];
-					std::wstring name = RocketLeagueSpotify::StrToWStr(items[i]["track"]["name"]);
-					std::wstring artist = RocketLeagueSpotify::StrToWStr(items[i]["track"]["artists"][0]["name"]);
-					std::wstring album = RocketLeagueSpotify::StrToWStr(items[i]["track"]["album"]["name"]);
-					std::string albumArtUrl = items[i]["track"]["album"]["images"][0]["url"];
-					std::wstring path = SpotifyManager::GetSongPath(id);
+			ParsePlaylist(playlist, items);
 
-					Song song(id, previewUrl, name, artist, album, albumArtUrl, path);
-					std::wstring output = RocketLeagueSpotify::StrToWStr(id) + L" | " + RocketLeagueSpotify::StrToWStr(previewUrl) + L" | " + name + L" | " + artist + L" | " + album + L" | " + RocketLeagueSpotify::StrToWStr(albumArtUrl);
-					cvarManager->log(output);
-					playlist.songs.push_back(song);
+			json paginationURL = playlistResponse["tracks"]["next"];
+			while (!paginationURL.is_null()) {
+				cpr::Response res = cpr::Get(
+					cpr::Url{ paginationURL },
+					cpr::Header{ { "Authorization", "Bearer " + token } });
+				if (res.status_code != 200) {
+					cvarManager->log("Bad response");
+					if (doRetry) {
+						Authenticate();
+					}
 				}
 				else {
-					cvarManager->log("No preview URL for song: " + i);
+					json paginationResponse = json::parse(res.text);
+					items = paginationResponse["items"];
+					paginationURL = paginationResponse["next"];
+					if (!items.is_null()) {
+						ParsePlaylist(playlist, items);
+					}
 				}
 			}
-			cvarManager->log("Spawning thread");
+
 			std::thread t([&](std::deque<Song> songs) {
-				SpotifyManager::DownloadPreviews(songs);
+				DownloadPreviews(songs);
 			}, playlist.songs);
 			t.detach();
 		}
@@ -114,13 +137,8 @@ int SpotifyManager::Authenticate() {
 		cpr::Header{ { "Authorization", "Basic " + credential} },
 		cpr::Parameters{ { "grant_type", "client_credentials" } });
 
-	cvarManager->log(credential);
-	cvarManager->log("AUTH");
-	cvarManager->log(std::to_string(res.status_code));
-	cvarManager->log(res.text);
 	auto authResponse = json::parse(res.text);
 	std::string access_token = authResponse["access_token"];
-	cvarManager->log(access_token);
 	token = access_token;
 
 	return res.status_code;

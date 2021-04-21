@@ -11,5 +11,5 @@ public:
 	int index = -1;
 
 	size_t Size();
-	void Shuffle(std::default_random_engine);
+	void Shuffle(std::default_random_engine &rng);
 };

@@ -28,4 +28,5 @@ public:
 	void DownloadPreview(Song);
 	void DownloadPreviews(std::deque<Song>);
 	SpotifyPlaylist GetPlaylist(std::string playlistId, bool doRetry = true);
+	void ParsePlaylist(SpotifyPlaylist&, nlohmann::json&);
 };

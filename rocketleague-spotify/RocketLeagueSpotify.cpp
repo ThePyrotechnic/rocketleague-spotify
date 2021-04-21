@@ -44,7 +44,7 @@ void RocketLeagueSpotify::onLoad() {
 	//gameWrapper->HookEventPost("Function TAGame.GameEvent_TA.EventPlayerRemoved", std::bind(&RocketLeagueSpotify::CheckPlayers, this, std::placeholders::_1));
 	gameWrapper->HookEventPost("Function TAGame.GameEvent_Soccar_TA.EventMatchEnded", std::bind(&RocketLeagueSpotify::MatchEnded, this, std::placeholders::_1));
 	gameWrapper->HookEventPost("Function GameEvent_TA.Countdown.BeginState", std::bind(&RocketLeagueSpotify::CheckPlayers, this, std::placeholders::_1));
-	gameWrapper->HookEvent("Function GameEvent_Soccar_TA.PostGoalScored.StartReplay", std::bind(&RocketLeagueSpotify::ReplayStart, this, std::placeholders::_1));
+	gameWrapper->HookEvent("Function GameEvent_Soccar_TA.ReplayPlayback.BeginState", std::bind(&RocketLeagueSpotify::ReplayStart, this, std::placeholders::_1));
 	gameWrapper->HookEvent("Function TAGame.Replay_TA.StopPlayback", std::bind(&RocketLeagueSpotify::ReplayEnd, this, std::placeholders::_1));
 	gameWrapper->HookEventWithCallerPost<ServerWrapper>("Function TAGame.GFxHUD_TA.HandleStatTickerMessage", std::bind(&RocketLeagueSpotify::HandleStatEvent, this, std::placeholders::_1, std::placeholders::_2));
 
@@ -52,7 +52,6 @@ void RocketLeagueSpotify::onLoad() {
 
 	playerID = new UniqueIDWrapper(gameWrapper->GetUniqueID());
 	playerIDString = playerID->GetIdString();
-	cvarManager->log(L"ERROR: " + std::to_wstring(BASS_ErrorGetCode()));
 
 	wchar_t* appdata;
 	size_t len;
@@ -103,49 +102,49 @@ std::wstring RocketLeagueSpotify::StrToWStr(std::string str) {
 }
 
 void RocketLeagueSpotify::CheckPlayers(std::string e) {
-	cvarManager->log("In event: " + e);
-	
-	if (seed != 0) { cvarManager->log("Match already started");  return; }
+	if (gameWrapper->GetOnlineGame().IsNull()) { cvarManager->log("Game is null"); return; }
+	if (seed != 0) { return; }
 
-	gameWrapper->SetTimeout([this](GameWrapper* gw)
-	{
-		if (gameWrapper->GetOnlineGame().IsNull()) { cvarManager->log("Game is null"); return; }
+	std::string guid = gameWrapper->GetOnlineGame().GetMatchGUID();
+	const char* guid_c = guid.c_str();
+	for (int a = 0; a < guid.length(); a++) {
+		seed += guid_c[a];
+	}
+	//seed = sscanf_s(, "%u", &seed);
+	cvarManager->log("Set seed: " + std::to_string(seed));
 
-		std::string guid = gameWrapper->GetOnlineGame().GetMatchGUID();
-		const char* guid_c = guid.c_str();
-		for (int a = 0; a < guid.length(); a++) {
-			seed += guid_c[a];
-		}
-		//seed = sscanf_s(, "%u", &seed);
-		cvarManager->log("Set seed: " + std::to_string(seed));
-
-		ArrayWrapper<PriWrapper> players = gameWrapper->GetOnlineGame().GetPRIs();
-		std::string commaSeparatedIDs;
-		cvarManager->log("Player count: " + std::to_string(players.Count()));
-		for (int a = 0; a < players.Count() - 1; a++) {
-			PriWrapper p = players.Get(a);
-			if (!p.IsNull()) {
-				UniqueIDWrapper id = p.GetUniqueIdWrapper();
-				std::string currentID = id.GetIdString();
-				cvarManager->log(currentID + ": " + p.GetPlayerName().ToString());
-				commaSeparatedIDs += currentID + ",";
-			}
-		}
-		PriWrapper p = players.Get(players.Count() - 1);
+	ArrayWrapper<PriWrapper> players = gameWrapper->GetOnlineGame().GetPRIs();
+	std::string commaSeparatedIDs;
+	cvarManager->log("Player count: " + std::to_string(players.Count()));
+	for (int a = 0; a < players.Count() - 1; a++) {
+		PriWrapper p = players.Get(a);
 		if (!p.IsNull()) {
-			commaSeparatedIDs += p.GetUniqueIdWrapper().GetIdString();
+			UniqueIDWrapper id = p.GetUniqueIdWrapper();
+			std::string currentID = id.GetIdString();
+			cvarManager->log(currentID + ": " + p.GetPlayerName().ToString());
+			commaSeparatedIDs += currentID + ",";
 		}
-		cvarManager->log("Retrieving data for " + commaSeparatedIDs);
+		else {
+			cvarManager->log("Player was null");
+		}
+	}
+	PriWrapper p = players.Get(players.Count() - 1);
+	if (!p.IsNull()) {
+		commaSeparatedIDs += p.GetUniqueIdWrapper().GetIdString();
+	}
+	cvarManager->log("Retrieving data for " + commaSeparatedIDs);
 
+	std::thread t([&](std::string _commaSeparatedIDs) {
+		spotifyManager.cacheManager.RescanCache();
 		std::string endpoint = cvarManager->getCvar("RLS_WebEndpoint").getStringValue() + "/users/";
 		cpr::Response res = cpr::Get(
 			cpr::Url{ endpoint },
-			cpr::Parameters{ { "user_ids", commaSeparatedIDs } }
+			cpr::Parameters{ { "user_ids", _commaSeparatedIDs } }
 		);
 		cvarManager->log(res.text);
 
 		if (res.status_code != 200) {
-			if (res.status_code == 404) cvarManager->log("No registered users out of: " + commaSeparatedIDs);
+			if (res.status_code == 404) cvarManager->log("No registered users out of: " + _commaSeparatedIDs);
 			else cvarManager->log("API Error: " + std::to_string(res.status_code));
 			return;
 		}
@@ -166,7 +165,8 @@ void RocketLeagueSpotify::CheckPlayers(std::string e) {
 		for (std::string id : connectedPlayers) {
 			loadedPlaylists[id].Shuffle(rng);
 		}
-	}, .05f);
+	}, commaSeparatedIDs);
+	t.detach();
 }
 
 void RocketLeagueSpotify::MatchEnded(std::string e) {
@@ -216,7 +216,6 @@ void RocketLeagueSpotify::AddPlaylistForID(std::string IDString, std::string pla
 	loadedPlaylists[IDString] = playlist;
 
 	if (!isPlayer || gameWrapper->IsInOnlineGame() || gameWrapper->IsSpectatingInOnlineGame()) {
-		cvarManager->log("Won't update playlist in online game");
 		return;
 	}
 	json data = {
@@ -228,6 +227,14 @@ void RocketLeagueSpotify::AddPlaylistForID(std::string IDString, std::string pla
 		cpr::Url{ cvarManager->getCvar("RLS_WebEndpoint").getStringValue() + "/users/" },
 		cpr::Header{ { "Content-Type", "application/json" } },
 		cpr::Body{ data.dump() });
+
+	if (res.status_code != 200) {
+		cvarManager->log("An error occured while syncing the playlist: " + res.status_code);
+		cvarManager->log(res.text);
+	}
+	else {
+		cvarManager->log("Synced playlist with the server");
+	}
 }
 
 void RocketLeagueSpotify::Render(CanvasWrapper canvas) {}
@@ -243,12 +250,15 @@ struct TickerStruct {
 };
 
 void RocketLeagueSpotify::ReplayStart(std::string eventName) {
-	if (loadedPlaylists[lastScorerId].Size() == 0) { cvarManager->log("Empty playlist for " + lastScorerId); return; }
+	if (loadedPlaylists.find(lastScorerId) == loadedPlaylists.end() || loadedPlaylists[lastScorerId].Size() == 0) {
+		cvarManager->log("Empty playlist for " + lastScorerId);
+		return;
+	}
 
 	Song nextSong = loadedPlaylists[lastScorerId].songs.front();
 
 	FadeIn(*fadeInTimeCVar);
-	cvarManager->log(L": " + nextSong.name);
+	cvarManager->log(L"Now playing: " + nextSong.artist + L", \"" + nextSong.name + L"\"");
 	HSTREAM s = audioManager.PlaySoundFromFile(nextSong.path);
 	replaySounds.push_back(s);
 	
@@ -281,7 +291,5 @@ void RocketLeagueSpotify::HandleStatEvent(ServerWrapper caller, void* args) {
 		Song nextSong = loadedPlaylists[lastScorerId].songs.back();
 		loadedPlaylists[lastScorerId].songs.push_front(nextSong);
 		loadedPlaylists[lastScorerId].songs.pop_back();
-
-		cvarManager->log(receiver.GetPlayerName().ToString() + " scored (" + receiverId.GetIdString() + ": " + statName + ")");
 	}
 }
