@@ -20,6 +20,7 @@ public:
 	void ReplayEnd(std::string);
 	void CheckPlayers(std::string);
 	void MatchEnded(std::string);
+	void OnExitToMainMenu(std::string);
 	void AddPlaylistForID(std::string, std::string);
 	void CVarMasterVolume(std::string, CVarWrapper);
 	void CVarGoalPlaylist(std::string, CVarWrapper);
@@ -33,12 +34,12 @@ public:
 
 	AudioManager audioManager;
 	SpotifyManager spotifyManager;
-	bool bInMenu;
 	UniqueIDWrapper* playerID;
 	std::string playerIDString;
 	std::wstring modDir;
 	std::wstring audioDir;
 	void FadeMasterVolume(int, int);
+	HSTREAM PlayNextSongForPlayer(std::string);
 	static std::wstring StrToWStr(std::string);
 	clock_t lastFadeTime = 0;
 	double timeSinceFade = 0.f;
@@ -47,6 +48,7 @@ public:
 	double deltaTime = 0.f;
 	std::vector<HSTREAM> replaySounds;
 	std::string lastScorerId;
+	std::string MVPID;
 	unsigned int seed;
 	std::vector<std::string> connectedPlayers;
 
