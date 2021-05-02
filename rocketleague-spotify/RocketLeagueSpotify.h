@@ -13,7 +13,7 @@ public:
 	void onUnload() override;
 
 	void Render(CanvasWrapper);
-	void FadeIn(int);
+	void FadeIn(int, int=-1);
 	void FadeOut(int);
 	void HandleStatEvent(ServerWrapper, void*);
 	void ReplayStart(std::string);
@@ -39,7 +39,7 @@ public:
 	std::wstring modDir;
 	std::wstring audioDir;
 	void FadeMasterVolume(int, int);
-	HSTREAM PlayNextSongForPlayer(std::string);
+	HSTREAM PlayNextSongForPlayer(std::string, int=-1, int=-1, bool=true);
 	static std::wstring StrToWStr(std::string);
 	clock_t lastFadeTime = 0;
 	double timeSinceFade = 0.f;

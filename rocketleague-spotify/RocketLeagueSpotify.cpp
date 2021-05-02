@@ -199,9 +199,10 @@ void RocketLeagueSpotify::FadeMasterVolume(int target, int timeToFade) {
 	fadeDuration = timeToFade;
 }
 
-void RocketLeagueSpotify::FadeIn(int timeToFade) {
+void RocketLeagueSpotify::FadeIn(int timeToFade, int targetVolume/* = -1 */) {
 	audioManager.SetMasterVolume(0);
-	FadeMasterVolume(cvarManager->getCvar("RLS_Master").getIntValue(), timeToFade);
+	if (targetVolume == -1) FadeMasterVolume(cvarManager->getCvar("RLS_Master").getIntValue(), timeToFade);
+	else FadeMasterVolume(targetVolume, timeToFade);
 }
 
 void RocketLeagueSpotify::FadeOut(int timeToFade) {
@@ -268,7 +269,7 @@ struct TickerStruct {
 	
 };
 
-HSTREAM RocketLeagueSpotify::PlayNextSongForPlayer(std::string ID) {
+HSTREAM RocketLeagueSpotify::PlayNextSongForPlayer(std::string ID, int timeToFade/* = -1 */, int targetVolume/* = -1 */, bool pop/* = true */) {
 	if (loadedPlaylists.find(ID) == loadedPlaylists.end() || loadedPlaylists[ID].Size() == 0) {
 		cvarManager->log("Empty playlist for " + ID);
 		return NULL;
@@ -276,13 +277,17 @@ HSTREAM RocketLeagueSpotify::PlayNextSongForPlayer(std::string ID) {
 
 	Song nextSong = loadedPlaylists[ID].songs.front();
 
-	FadeIn(*fadeInTimeCVar);
+	if (timeToFade == -1) FadeIn(*fadeInTimeCVar, targetVolume);
+	else FadeIn(timeToFade, targetVolume);
+
 	cvarManager->log(L"Now playing: " + nextSong.artist + L", \"" + nextSong.name + L"\"");
 	HSTREAM s = audioManager.PlaySoundFromFile(nextSong.path);
 
-	loadedPlaylists[ID].songs.push_back(nextSong);
-	loadedPlaylists[ID].songs.pop_front();
-
+	if (pop) {
+		loadedPlaylists[ID].songs.push_back(nextSong);
+		loadedPlaylists[ID].songs.pop_front();
+	}
+	
 	return s;
 }
 
@@ -309,16 +314,19 @@ void RocketLeagueSpotify::HandleStatEvent(ServerWrapper caller, void* args) {
 	UniqueIDWrapper receiverId = receiver.GetUniqueIdWrapper();
 
 	if (statName._Equal("Goal")) {
-		
 		lastScorerId = receiverId.GetIdString();
-
-		if (loadedPlaylists.find(lastScorerId) == loadedPlaylists.end() || loadedPlaylists[lastScorerId].songs.empty()) {
-			cvarManager->log("No playlist for " + lastScorerId);
-			return;
-		}
 	}
 	else if (statName._Equal("MVP")) {
-		cvarManager->log(receiverId.GetIdString());
 		MVPID = receiverId.GetIdString();
+	}
+	else if (statName._Equal("Epic Save")) {
+		DWORD s = PlayNextSongForPlayer(receiverId.GetIdString(), *fadeInTimeCVar * 4, cvarManager->getCvar("RLS_Master").getIntValue() / 4, false);
+		gameWrapper->SetTimeout([this, s](GameWrapper* gw) {
+			FadeOut(*fadeOutTimeCVar * 4);
+
+			gameWrapper->SetTimeout([this, s](GameWrapper* gw) {
+				audioManager.StopSound(s);
+			}, 5);
+		}, 3);
 	}
 }
