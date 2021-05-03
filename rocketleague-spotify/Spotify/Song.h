@@ -8,7 +8,12 @@ public:
 	std::wstring artist;
 	std::wstring album;
 	std::string albumArtUrl;
-	std::wstring path;
+	std::wstring audioPath;
+	std::wstring imagePath;
+
+	Song(){
+
+	}
 
 	Song(std::string id,
 		std::string previewUrl,
@@ -16,7 +21,8 @@ public:
 		std::wstring artist,
 		std::wstring album,
 		std::string albumArtUrl,
-		std::wstring path) {
+		std::wstring audioPath,
+		std::wstring imagePath) {
 
 		this->id = id;
 		this->previewUrl = previewUrl;
@@ -24,6 +30,7 @@ public:
 		this->artist = artist;
 		this->album = album;
 		this->albumArtUrl = albumArtUrl;
-		this->path = path;
+		this->audioPath = audioPath;
+		this->imagePath = imagePath;
 	}
 };
