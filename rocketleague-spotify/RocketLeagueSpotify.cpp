@@ -289,16 +289,16 @@ HSTREAM RocketLeagueSpotify::PlayNextSongForPlayer(std::string ID) {
 }
 
 void RocketLeagueSpotify::ReplayStart(std::string eventName) {
-	isInReplay = true;
 	DWORD s = PlayNextSongForPlayer(lastScorerId);
-	if (s != NULL) replaySounds.push_back(s);
-	albumArtImage = std::make_shared <ImageWrapper>(nextSong.imagePath, true, true);
-	cvarManager->executeCommand("togglemenu " + GetMenuName());
+	if (s != NULL) {
+		isSongPlaying = true;
+		replaySounds.push_back(s);
+		albumArtImage = std::make_shared <ImageWrapper>(nextSong.imagePath, true, true);
+		cvarManager->executeCommand("togglemenu " + GetMenuName());
+	}
 }
 
 void RocketLeagueSpotify::ReplayEnd(std::string eventName) {
-	isInReplay = false;
-
 	FadeOut(*fadeOutTimeCVar);
 	gameWrapper->SetTimeout([this](GameWrapper* gw) {
 		for (HSTREAM s : replaySounds) {
@@ -306,7 +306,10 @@ void RocketLeagueSpotify::ReplayEnd(std::string eventName) {
 		}
 		replaySounds.clear();
 	}, 5);
-	cvarManager->executeCommand("togglemenu " + GetMenuName());
+	if (isSongPlaying) {
+		isSongPlaying = false;
+		cvarManager->executeCommand("togglemenu " + GetMenuName());
+	}
 }
 
 void RocketLeagueSpotify::HandleStatEvent(ServerWrapper caller, void* args) {
