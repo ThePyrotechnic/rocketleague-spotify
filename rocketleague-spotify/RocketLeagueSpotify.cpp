@@ -2,7 +2,9 @@
 
 #include "bakkesmod/wrappers/includes.h"
 #include "bakkesmod/wrappers/GameObject/Stats/StatEventWrapper.h"
+#include "bakkesmod/wrappers/GuiManagerWrapper.h"
 #include "RocketLeagueSpotify.h"
+
 
 using json = nlohmann::json;
 
@@ -49,8 +51,6 @@ void RocketLeagueSpotify::onLoad() {
 	gameWrapper->HookEvent("Function TAGame.Replay_TA.StopPlayback", std::bind(&RocketLeagueSpotify::ReplayEnd, this, std::placeholders::_1));
 	gameWrapper->HookEventWithCallerPost<ServerWrapper>("Function TAGame.GFxHUD_TA.HandleStatTickerMessage", std::bind(&RocketLeagueSpotify::HandleStatEvent, this, std::placeholders::_1, std::placeholders::_2));
 
-	gameWrapper->RegisterDrawable(bind(&RocketLeagueSpotify::Render, this, std::placeholders::_1));
-
 	playerID = new UniqueIDWrapper(gameWrapper->GetUniqueID());
 	playerIDString = playerID->GetIdString();
 
@@ -59,12 +59,16 @@ void RocketLeagueSpotify::onLoad() {
 	_wdupenv_s(&appdata, &len, L"APPDATA");
 	modDir = gameWrapper->GetBakkesModPathW() + LR"(\rocketleague-spotify)";
 	audioDir = modDir + LR"(\assets\audio\)";
+	imageDir = modDir + LR"(\assets\images\)";
 
-	spotifyManager = SpotifyManager(cvarManager, modDir, audioDir);
+	spotifyManager = SpotifyManager(cvarManager, modDir, audioDir, imageDir);
 	
 	CVarGoalPlaylist("", cvarManager->getCvar("RLS_GoalPlaylist"));  // Initialize playlist
 
 	Tick();
+
+	songBgImage = std::make_shared <ImageWrapper>(imageDir + LR"(goal_song_bg.png)", true, true);
+	albumArtBgImage = std::make_shared <ImageWrapper>(imageDir + LR"(art_bg.png)", true, true);
 }
 
 void RocketLeagueSpotify::onUnload() {
@@ -257,8 +261,6 @@ void RocketLeagueSpotify::AddPlaylistForID(std::string IDString, std::string pla
 	}
 }
 
-void RocketLeagueSpotify::Render(CanvasWrapper canvas) {}
-
 struct TickerStruct {
 	// person who got a stat
 	uintptr_t Receiver;
@@ -275,13 +277,13 @@ HSTREAM RocketLeagueSpotify::PlayNextSongForPlayer(std::string ID, int timeToFad
 		return NULL;
 	}
 
-	Song nextSong = loadedPlaylists[ID].songs.front();
+	nextSong = loadedPlaylists[ID].songs.front();
 
 	if (timeToFade == -1) FadeIn(*fadeInTimeCVar, targetVolume);
 	else FadeIn(timeToFade, targetVolume);
 
 	cvarManager->log(L"Now playing: " + nextSong.artist + L", \"" + nextSong.name + L"\"");
-	HSTREAM s = audioManager.PlaySoundFromFile(nextSong.path);
+	HSTREAM s = audioManager.PlaySoundFromFile(nextSong.audioPath);
 
 	if (pop) {
 		loadedPlaylists[ID].songs.push_back(nextSong);
@@ -293,7 +295,12 @@ HSTREAM RocketLeagueSpotify::PlayNextSongForPlayer(std::string ID, int timeToFad
 
 void RocketLeagueSpotify::ReplayStart(std::string eventName) {
 	DWORD s = PlayNextSongForPlayer(lastScorerId);
-	if (s != NULL) replaySounds.push_back(s);
+	if (s != NULL) {
+		isSongPlaying = true;
+		replaySounds.push_back(s);
+		albumArtImage = std::make_shared <ImageWrapper>(nextSong.imagePath, true, true);
+		cvarManager->executeCommand("togglemenu " + GetMenuName());
+	}
 }
 
 void RocketLeagueSpotify::ReplayEnd(std::string eventName) {
@@ -304,6 +311,10 @@ void RocketLeagueSpotify::ReplayEnd(std::string eventName) {
 		}
 		replaySounds.clear();
 	}, 5);
+	if (isSongPlaying) {
+		isSongPlaying = false;
+		cvarManager->executeCommand("togglemenu " + GetMenuName());
+	}
 }
 
 void RocketLeagueSpotify::HandleStatEvent(ServerWrapper caller, void* args) {
@@ -329,4 +340,114 @@ void RocketLeagueSpotify::HandleStatEvent(ServerWrapper caller, void* args) {
 			}, 5);
 		}, 3);
 	}
+}
+
+// Do ImGui rendering here
+void RocketLeagueSpotify::Render()
+{
+	ImGuiWindowFlags windowFlags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoBackground;
+	ImGuiIO& io = ImGui::GetIO();
+	if (!font) {
+		auto gui = gameWrapper->GetGUIManager();
+		font = gui.GetFont("myfont");
+	}
+	if (!ImGui::Begin("RLS", &isWindowOpen_, windowFlags))
+	{
+		// Early out if the window is collapsed, as an optimization.
+		ImGui::End();
+		return;
+	}
+	auto gui = gameWrapper->GetGUIManager();
+	auto font = gui.GetFont("myfont");
+	ImVec2 windowSize = ImVec2(io.DisplaySize.x, io.DisplaySize.y);
+	ImGui::SetWindowSize(windowSize);
+	ImDrawList* drawList = ImGui::GetWindowDrawList();
+
+	float x = io.DisplaySize.x, y = io.DisplaySize.y;
+	float resScale;
+	if (y < 1440) {
+		resScale = 1.5;
+	}
+	else if (y < 2160) {
+		resScale = 2;
+	}
+	else {
+		resScale = 2.5;
+	}
+	if (auto songBgTex = songBgImage->GetImGuiTex()) {
+		drawList->AddImage(songBgTex, { x * (381.0f / 512.0f), y * (401.0f / 480.0f) }, { x * (159.0f / 160.0f), y * (11.0f / 12.0f) });
+	}
+	if (auto artTex = albumArtImage->GetImGuiTex()) {
+		drawList->AddImage(artTex, { x * (111.0f / 160.0f), y * (1199.0f / 1440.0f) }, { x * (1901.0f / 2560.0f), y * (331.0f / 360.0f) });
+	}
+	if (auto artBgTex = albumArtBgImage->GetImGuiTex()) {
+		drawList->AddImage(artBgTex, { x * (443.0f / 640.0f), y * (239.0f / 288.0f) }, { x * (381.0f / 512.0f), y * (83.0f / 90.0f) });
+	}
+	
+	ImVec2 titlePos = ImVec2(x * (961.0f / 1280.0f), y * (1221.0f / 1440.0f));
+	ImVec2 artistPos = ImVec2(x * (961.0f / 1280.0f), y * (1269.0f / 1440.0f));
+	std::string songName(nextSong.name.begin(), nextSong.name.end());
+	std::string songArtist(nextSong.artist.begin(), nextSong.artist.end());
+	drawList->AddText(font, int(resScale * 1.8f * ImGui::GetFontSize()), titlePos, IM_COL32_WHITE, songName.c_str());
+	drawList->AddText(font, int(resScale * 1.4f * ImGui::GetFontSize()), artistPos, IM_COL32(67, 174, 254, 255), songArtist.c_str());
+
+	ImGui::End();
+
+	if (!isWindowOpen_) {
+		cvarManager->executeCommand("togglemenu " + GetMenuName());
+	}
+}
+
+// Name of the menu that is used to toggle the window.
+std::string RocketLeagueSpotify::GetMenuName()
+{
+	return "RLS";
+}
+
+// Title to give the menu
+std::string RocketLeagueSpotify::GetMenuTitle()
+{
+	return "RLS";
+}
+
+// Don't call this yourself, BM will call this function with a pointer to the current ImGui context
+void RocketLeagueSpotify::SetImGuiContext(uintptr_t ctx)
+{
+	ImGui::SetCurrentContext(reinterpret_cast<ImGuiContext*>(ctx));
+	auto gui = gameWrapper->GetGUIManager();
+	auto [res, fnt] = gui.LoadFont("myfont", "BourgeoisMedium.ttf", 200);
+
+	if (res == 0) {
+		cvarManager->log("Failed to load the font!");
+	}
+	else if (res == 1) {
+		cvarManager->log("The font will be loaded");
+	}
+	else if (res == 2 && fnt) {
+		font = fnt;
+	}
+}
+
+// Should events such as mouse clicks/key inputs be blocked so they won't reach the game
+bool RocketLeagueSpotify::ShouldBlockInput()
+{
+	return false;
+}
+
+// Return true if window should be interactive
+bool RocketLeagueSpotify::IsActiveOverlay()
+{
+	return false;
+}
+
+// Called when window is opened
+void RocketLeagueSpotify::OnOpen()
+{
+	isWindowOpen_ = true;
+}
+
+// Called when window is closed
+void RocketLeagueSpotify::OnClose()
+{
+	isWindowOpen_ = false;
 }

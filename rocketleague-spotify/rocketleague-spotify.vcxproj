@@ -159,13 +159,32 @@
       <Command>xcopy /y "$(TargetPath)" "$(APPDATA)\bakkesmod\bakkesmod\plugins\"
 
 
+
 xcopy /y "$(SolutionDir)config.json" "$(APPDATA)\bakkesmod\bakkesmod\rocketleague-spotify\"
 
 
-xcopy /y "$(SolutionDir)RocketLeagueSpotify.set" "$(APPDATA)\bakkesmod\bakkesmod\plugins\settings\"</Command>
+
+xcopy /y "$(SolutionDir)RocketLeagueSpotify.set" "$(APPDATA)\bakkesmod\bakkesmod\plugins\settings\"
+if not exist "$(APPDATA)\bakkesmod\bakkesmod\data\fonts" mkdir "$(APPDATA)\bakkesmod\bakkesmod\data\fonts"
+xcopy /y "$(SolutionDir)BourgeoisMedium.ttf" "$(APPDATA)\bakkesmod\bakkesmod\data\fonts"
+xcopy /y "$(SolutionDir)rocketleague-spotify\assets\images" "$(APPDATA)\bakkesmod\bakkesmod\rocketleague-spotify\assets\images"</Command>
     </PostBuildEvent>
+    <Manifest>
+      <EnableDpiAwareness>true</EnableDpiAwareness>
+    </Manifest>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="include\imgui\imgui.cpp" />
+    <ClCompile Include="include\imgui\imguivariouscontrols.cpp" />
+    <ClCompile Include="include\imgui\imgui_additions.cpp" />
+    <ClCompile Include="include\imgui\imgui_demo.cpp" />
+    <ClCompile Include="include\imgui\imgui_draw.cpp" />
+    <ClCompile Include="include\imgui\imgui_impl_dx11.cpp" />
+    <ClCompile Include="include\imgui\imgui_impl_win32.cpp" />
+    <ClCompile Include="include\imgui\imgui_rangeslider.cpp" />
+    <ClCompile Include="include\imgui\imgui_searchablecombo.cpp" />
+    <ClCompile Include="include\imgui\imgui_timeline.cpp" />
+    <ClCompile Include="include\imgui\imgui_widgets.cpp" />
     <ClCompile Include="Audio\AudioManager.cpp" />
     <ClCompile Include="Cache\CacheManager.cpp" />
     <ClCompile Include="RocketLeagueSpotify.cpp" />
@@ -178,6 +197,19 @@ xcopy /y "$(SolutionDir)RocketLeagueSpotify.set" "$(APPDATA)\bakkesmod\bakkesmod
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="include\imgui\imconfig.h" />
+    <ClInclude Include="include\imgui\imgui.h" />
+    <ClInclude Include="include\imgui\imguivariouscontrols.h" />
+    <ClInclude Include="include\imgui\imgui_additions.h" />
+    <ClInclude Include="include\imgui\imgui_impl_dx11.h" />
+    <ClInclude Include="include\imgui\imgui_impl_win32.h" />
+    <ClInclude Include="include\imgui\imgui_internal.h" />
+    <ClInclude Include="include\imgui\imgui_rangeslider.h" />
+    <ClInclude Include="include\imgui\imgui_searchablecombo.h" />
+    <ClInclude Include="include\imgui\imgui_timeline.h" />
+    <ClInclude Include="include\imgui\imstb_rectpack.h" />
+    <ClInclude Include="include\imgui\imstb_textedit.h" />
+    <ClInclude Include="include\imgui\imstb_truetype.h" />
     <ClInclude Include="Audio\AudioManager.h" />
     <ClInclude Include="Cache\CacheManager.h" />
     <ClInclude Include="RocketLeagueSpotify.h" />

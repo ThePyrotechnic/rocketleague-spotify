@@ -7,25 +7,26 @@ using json = nlohmann::json;
 
 SpotifyManager::SpotifyManager() {}
 
-SpotifyManager::SpotifyManager(std::shared_ptr<CVarManagerWrapper> cvarManager, std::wstring modDir, std::wstring audioDir) {
+SpotifyManager::SpotifyManager(std::shared_ptr<CVarManagerWrapper> cvarManager, std::wstring modDir, std::wstring audioDir, std::wstring imageDir) {
 	this->cvarManager = cvarManager;
 	this->modDir = modDir;
 	this->audioDir = audioDir;
+	this->imageDir = imageDir;
 	std::ifstream i(this->modDir + LR"(\config.json)");
 	i >> config;
 	credential = config["spotifyId:SecretBase64"];
 	Authenticate();
-	cacheManager = CacheManager(audioDir);
+	cacheManager = CacheManager(audioDir, imageDir);
 }
 
 void SpotifyManager::DownloadPreview(Song song) {
 	std::wstring wSongId = RocketLeagueSpotify::StrToWStr(song.id);
-	std::wstring filePath = cacheManager.GetCachedSong(wSongId);
+	std::wstring filePath = cacheManager.GetCachedAudio(wSongId);
 	if (!filePath.empty()) { return; }
 
 	cpr::Response res = cpr::Get(cpr::Url{ song.previewUrl });
 	if (res.status_code == 200) {
-		std::fstream previewFile = std::fstream(song.path, std::ios::out | std::ios::binary);
+		std::fstream previewFile = std::fstream(song.audioPath, std::ios::out | std::ios::binary);
 		const char* content = res.text.c_str();
 		std::stringstream sstream(res.header["Content-Length"]);
 		size_t size;
@@ -35,16 +36,40 @@ void SpotifyManager::DownloadPreview(Song song) {
 	}
 }
 
-std::wstring SpotifyManager::GetSongPath(std::string songId) {
+void SpotifyManager::DownloadImage(Song song) {
+	std::wstring wSongId = RocketLeagueSpotify::StrToWStr(song.id);
+	std::wstring filePath = cacheManager.GetCachedImage(wSongId);
+	if (!filePath.empty()) { return; }
+
+	cpr::Response res = cpr::Get(cpr::Url{ song.albumArtUrl });
+	if (res.status_code == 200) {
+		std::fstream imageFile = std::fstream(song.imagePath, std::ios::out | std::ios::binary);
+		const char* content = res.text.c_str();
+		std::stringstream sstream(res.header["Content-Length"]);
+		size_t size;
+		sstream >> size;
+		imageFile.write(content, size);
+		imageFile.close();
+	}
+}
+
+std::wstring SpotifyManager::GetAudioPath(std::string songId) {
 	std::wstring wSongId = RocketLeagueSpotify::StrToWStr(songId);
 	return audioDir + wSongId + L".mp3";
 }
 
-void SpotifyManager::DownloadPreviews(std::deque<Song> songs) {
+std::wstring SpotifyManager::GetImagePath(std::string songId) {
+	std::wstring wSongId = RocketLeagueSpotify::StrToWStr(songId);
+	return imageDir + wSongId + L".jpg";
+}
+
+void SpotifyManager::DownloadFiles(std::deque<Song> songs) {
 	for (Song song : songs) {
 		DownloadPreview(song);
+		DownloadImage(song);
 	}
 }
+
 
 void SpotifyManager::ParsePlaylist(SpotifyPlaylist &playlist, json &items) {
 	for (int i = 0; i < items.size(); i++) {
@@ -56,11 +81,12 @@ void SpotifyManager::ParsePlaylist(SpotifyPlaylist &playlist, json &items) {
 			std::wstring artist = RocketLeagueSpotify::StrToWStr(items[i]["track"]["artists"][0]["name"]);
 			std::wstring album = RocketLeagueSpotify::StrToWStr(items[i]["track"]["album"]["name"]);
 			std::string albumArtUrl = items[i]["track"]["album"]["images"][0]["url"];
-			std::wstring path = SpotifyManager::GetSongPath(id);
+			std::wstring audioPath = SpotifyManager::GetAudioPath(id);
+			std::wstring imagePath = SpotifyManager::GetImagePath(id);
 
-			Song song(id, previewUrl, name, artist, album, albumArtUrl, path);
+			Song song(id, previewUrl, name, artist, album, albumArtUrl, audioPath, imagePath);
 			std::wstring output = RocketLeagueSpotify::StrToWStr(id) + L" | " + RocketLeagueSpotify::StrToWStr(previewUrl) + L" | " + name + L" | " + artist + L" | " + album + L" | " + RocketLeagueSpotify::StrToWStr(albumArtUrl);
-			//cvarManager->log(output);
+			// cvarManager->log(output);
 			playlist.songs.push_back(song);
 		}
 		else {
@@ -119,7 +145,7 @@ SpotifyPlaylist SpotifyManager::GetPlaylist(std::string playlistId, bool doRetry
 			}
 
 			std::thread t([&](std::deque<Song> songs) {
-				DownloadPreviews(songs);
+				DownloadFiles(songs);
 			}, playlist.songs);
 			t.detach();
 		}

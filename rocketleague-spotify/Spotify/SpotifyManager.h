@@ -10,9 +10,10 @@
 class SpotifyManager {
 public:
 	SpotifyManager();
-	SpotifyManager(std::shared_ptr<CVarManagerWrapper>, std::wstring, std::wstring);
+	SpotifyManager(std::shared_ptr<CVarManagerWrapper>, std::wstring, std::wstring, std::wstring);
 	std::shared_ptr<CVarManagerWrapper> cvarManager;
 	std::wstring audioDir;
+	std::wstring imageDir;
 	std::wstring modDir;
 	std::string token;
 	std::string credential;
@@ -20,13 +21,13 @@ public:
 	CacheManager cacheManager;
 
 	int Authenticate();
-	//SpotifyPlaylist GetPlaylist(std::string);
-	//Song GetSong(std::string);
-	//std::vector<Song> GetSongs(std::vector<std::string>);
-	std::wstring GetSongPath(std::string);
+
+	std::wstring GetAudioPath(std::string);
+	std::wstring GetImagePath(std::string);
 
 	void DownloadPreview(Song);
-	void DownloadPreviews(std::deque<Song>);
+	void DownloadFiles(std::deque<Song>);
+	void DownloadImage(Song);
 	SpotifyPlaylist GetPlaylist(std::string playlistId, bool doRetry = true);
 	void ParsePlaylist(SpotifyPlaylist&, nlohmann::json&);
 };

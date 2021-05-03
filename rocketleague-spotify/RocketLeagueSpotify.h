@@ -1,12 +1,13 @@
 #pragma once
 #pragma comment( lib, "pluginsdk.lib" )
 #include "bakkesmod/plugin/bakkesmodplugin.h"
+#include "bakkesmod/plugin/pluginwindow.h"
 
 #include "Audio/AudioManager.h"
 #include "Spotify/SpotifyManager.h"
 
 
-class RocketLeagueSpotify : public BakkesMod::Plugin::BakkesModPlugin {
+class RocketLeagueSpotify : public BakkesMod::Plugin::BakkesModPlugin, public BakkesMod::Plugin::PluginWindow {
 public:
 	//RocketLeagueSpotify();
 	void onLoad() override;
@@ -38,6 +39,7 @@ public:
 	std::string playerIDString;
 	std::wstring modDir;
 	std::wstring audioDir;
+	std::wstring imageDir;
 	void FadeMasterVolume(int, int);
 	HSTREAM PlayNextSongForPlayer(std::string, int=-1, int=-1, bool=true);
 	static std::wstring StrToWStr(std::string);
@@ -53,4 +55,23 @@ public:
 	std::vector<std::string> connectedPlayers;
 
 	std::unordered_map<std::string, SpotifyPlaylist> loadedPlaylists;
+
+	std::shared_ptr<ImageWrapper> songBgImage;
+	std::shared_ptr<ImageWrapper> albumArtBgImage;
+	std::shared_ptr<ImageWrapper> albumArtImage;
+	bool isSongPlaying;
+
+	virtual void Render() override;
+	virtual std::string GetMenuName() override;
+	virtual std::string GetMenuTitle() override;
+	virtual void SetImGuiContext(uintptr_t ctx) override;
+	virtual bool ShouldBlockInput() override;
+	virtual bool IsActiveOverlay() override;
+	virtual void OnOpen() override;
+	virtual void OnClose() override;
+
+	bool isWindowOpen_ = false;
+
+	ImFont* font;
+	Song nextSong;
 };
