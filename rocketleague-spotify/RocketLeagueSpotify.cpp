@@ -387,6 +387,9 @@ void RocketLeagueSpotify::Render()
 	ImVec2 titlePos = ImVec2(x * (961.0f / 1280.0f), y * (1221.0f / 1440.0f));
 	ImVec2 artistPos = ImVec2(x * (961.0f / 1280.0f), y * (1269.0f / 1440.0f));
 	std::string songName(nextSong.name.begin(), nextSong.name.end());
+	if (songName.length() > 32) {
+		songName = songName.substr(0, 31) + "...";
+	}
 	std::string songArtist(nextSong.artist.begin(), nextSong.artist.end());
 	drawList->AddText(font, int(resScale * 1.8f * ImGui::GetFontSize()), titlePos, IM_COL32_WHITE, songName.c_str());
 	drawList->AddText(font, int(resScale * 1.4f * ImGui::GetFontSize()), artistPos, IM_COL32(67, 174, 254, 255), songArtist.c_str());
