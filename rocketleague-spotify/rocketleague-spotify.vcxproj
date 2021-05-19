@@ -160,14 +160,18 @@
 
 
 
+
 xcopy /y "$(SolutionDir)config.json" "$(APPDATA)\bakkesmod\bakkesmod\rocketleague-spotify\"
+
 
 
 
 xcopy /y "$(SolutionDir)RocketLeagueSpotify.set" "$(APPDATA)\bakkesmod\bakkesmod\plugins\settings\"
 if not exist "$(APPDATA)\bakkesmod\bakkesmod\data\fonts" mkdir "$(APPDATA)\bakkesmod\bakkesmod\data\fonts"
+
 xcopy /y "$(SolutionDir)BourgeoisMedium.ttf" "$(APPDATA)\bakkesmod\bakkesmod\data\fonts"
-xcopy /y "$(SolutionDir)rocketleague-spotify\assets\images" "$(APPDATA)\bakkesmod\bakkesmod\rocketleague-spotify\assets\images"</Command>
+
+xcopy /y "$(SolutionDir)rocketleague-spotify\assets\images\" "$(APPDATA)\bakkesmod\bakkesmod\rocketleague-spotify\assets\images\"</Command>
     </PostBuildEvent>
     <Manifest>
       <EnableDpiAwareness>true</EnableDpiAwareness>
