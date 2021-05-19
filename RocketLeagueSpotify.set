@@ -2,4 +2,4 @@ Rocket League + Spotify
 5|Master volume|RLS_Master|0|100
 12|Goal playlist Spotify ID|RLS_GoalPlaylist
 9|$RLS_GoalPlaylistStatus$
-12|Web API endpoint|RLS_WebEndpoint
+1|Play songs in training|RLS_PlayInTraining

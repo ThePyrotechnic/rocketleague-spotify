@@ -15,6 +15,7 @@
 #include <unordered_map>
 #include <thread>
 #include <random>
+#include <chrono>
 
 #pragma comment( lib, "bass.lib" )
 #include "bass.h"

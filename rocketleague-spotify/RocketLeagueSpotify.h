@@ -19,17 +19,22 @@ public:
 	void HandleStatEvent(ServerWrapper, void*);
 	void ReplayStart(std::string);
 	void ReplayEnd(std::string);
-	void CheckPlayers(std::string);
+	void InitGame(std::string);
 	void MatchEnded(std::string);
 	void OnExitToMainMenu(std::string);
 	void AddPlaylistForID(std::string, std::string);
 	void CVarMasterVolume(std::string, CVarWrapper);
 	void CVarGoalPlaylist(std::string, CVarWrapper);
 	void Tick();
+	void CleanUp(std::string);
+	void LoadPlaylists(std::string);
+	std::string RandomString(int);
+	int RandomNumber();
 
 	std::shared_ptr<int> fadeInTimeCVar;
 	std::shared_ptr<int> fadeOutTimeCVar;
 	std::shared_ptr <std::string> goalPlaylistCVar;
+	std::shared_ptr <bool> playInTrainingCVar;
 
 	LinearColor textColor;
 
