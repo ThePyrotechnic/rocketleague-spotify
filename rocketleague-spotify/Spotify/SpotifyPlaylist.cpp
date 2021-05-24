@@ -7,3 +7,8 @@ size_t SpotifyPlaylist::Size() { return songs.size(); }
 void SpotifyPlaylist::Shuffle(std::default_random_engine &rng) {
 	std::shuffle(songs.begin(), songs.end(), rng);
 }
+
+Song SpotifyPlaylist::RandomSong() {
+	int index = Helpers::RandomNumber() % Size();
+	return songs[index];
+}

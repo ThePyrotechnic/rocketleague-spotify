@@ -146,6 +146,7 @@
       <PrecompiledHeader>Use</PrecompiledHeader>
       <ForcedIncludeFiles>%(ForcedIncludeFiles)</ForcedIncludeFiles>
       <LanguageStandard>stdcpp17</LanguageStandard>
+      <Optimization>MaxSpeed</Optimization>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -178,6 +179,7 @@ xcopy /y "$(SolutionDir)rocketleague-spotify\assets\images\" "$(APPDATA)\bakkesm
     </Manifest>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Helpers.cpp" />
     <ClCompile Include="include\imgui\imgui.cpp" />
     <ClCompile Include="include\imgui\imguivariouscontrols.cpp" />
     <ClCompile Include="include\imgui\imgui_additions.cpp" />
@@ -201,6 +203,7 @@ xcopy /y "$(SolutionDir)rocketleague-spotify\assets\images\" "$(APPDATA)\bakkesm
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Helpers.h" />
     <ClInclude Include="include\imgui\imconfig.h" />
     <ClInclude Include="include\imgui\imgui.h" />
     <ClInclude Include="include\imgui\imguivariouscontrols.h" />

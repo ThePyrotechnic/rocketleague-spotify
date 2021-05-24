@@ -3,17 +3,17 @@
 #include "bakkesmod/plugin/bakkesmodplugin.h"
 #include "bakkesmod/plugin/pluginwindow.h"
 
+#include "Helpers.h"
 #include "Audio/AudioManager.h"
 #include "Spotify/SpotifyManager.h"
+#include "Spotify/SpotifyPlaylist.h"
 
 
 class RocketLeagueSpotify : public BakkesMod::Plugin::BakkesModPlugin, public BakkesMod::Plugin::PluginWindow {
 public:
-	//RocketLeagueSpotify();
 	void onLoad() override;
 	void onUnload() override;
 
-	void Render(CanvasWrapper);
 	void FadeIn(int, int=-1);
 	void FadeOut(int);
 	void HandleStatEvent(ServerWrapper, void*);
@@ -28,13 +28,21 @@ public:
 	void Tick();
 	void CleanUp(std::string);
 	void LoadPlaylists(std::string);
-	std::string RandomString(int);
-	int RandomNumber();
+	void ForceQuit();
+	void SetSyncStatus();
+	void CVarSyncStatus(std::string, CVarWrapper);
 
 	std::shared_ptr<int> fadeInTimeCVar;
 	std::shared_ptr<int> fadeOutTimeCVar;
 	std::shared_ptr <std::string> goalPlaylistCVar;
 	std::shared_ptr <bool> playInTrainingCVar;
+	std::shared_ptr <bool> stopInMenuCVar;
+	std::shared_ptr <bool> forceQuitEnabledCVar;
+	std::shared_ptr <bool> ownPlaylistOnlyCVar;
+	std::shared_ptr <bool> partyMembersOnlyCVar;
+	std::shared_ptr <bool> downloadEnemyPlaylistsCVar;
+	std::shared_ptr <bool> ownPlaylistForEnemiesCVar;
+	std::shared_ptr <bool> useOwnForMissingCVar;
 
 	LinearColor textColor;
 
@@ -47,7 +55,6 @@ public:
 	std::wstring imageDir;
 	void FadeMasterVolume(int, int);
 	HSTREAM PlayNextSongForPlayer(std::string, int=-1, int=-1, bool=true);
-	static std::wstring StrToWStr(std::string);
 	clock_t lastFadeTime = 0;
 	double timeSinceFade = 0.f;
 	double fadeDuration = 0.f;
@@ -57,7 +64,8 @@ public:
 	std::string lastScorerId;
 	std::string MVPID;
 	unsigned int seed;
-	std::vector<std::string> connectedPlayers;
+	std::vector<std::string> playersWithPlaylists;
+	std::unordered_map<std::string, PriWrapper> playerRefs;
 
 	std::unordered_map<std::string, SpotifyPlaylist> loadedPlaylists;
 

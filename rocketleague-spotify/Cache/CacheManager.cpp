@@ -13,14 +13,14 @@ CacheManager::CacheManager(std::wstring audioCacheDir, std::wstring imageCacheDi
 
 void CacheManager::RescanCache() {
 	if (!audioCacheDir.empty()) {
-		for (auto entry : std::filesystem::directory_iterator(audioCacheDir)) {
+		for (auto& entry : std::filesystem::directory_iterator(audioCacheDir)) {
 			if (entry.is_regular_file()) {
 				audioCache.insert({ entry.path().stem().wstring(), entry.path().wstring() });
 			}
 		}
 	}
 	if (!imageCacheDir.empty()) {
-		for (auto entry : std::filesystem::directory_iterator(imageCacheDir)) {
+		for (auto& entry : std::filesystem::directory_iterator(imageCacheDir)) {
 			if (entry.is_regular_file()) {
 				imageCache.insert({ entry.path().stem().wstring(), entry.path().wstring() });
 			}

@@ -1,7 +1,6 @@
 #include "stdafx.h"
 
 #include "SpotifyManager.h"
-#include "RocketLeagueSpotify.h"
 
 using json = nlohmann::json;
 
@@ -20,7 +19,7 @@ SpotifyManager::SpotifyManager(std::shared_ptr<CVarManagerWrapper> cvarManager, 
 }
 
 void SpotifyManager::DownloadPreview(Song song) {
-	std::wstring wSongId = RocketLeagueSpotify::StrToWStr(song.id);
+	std::wstring wSongId = Helpers::StrToWStr(song.id);
 	std::wstring filePath = cacheManager.GetCachedAudio(wSongId);
 	if (!filePath.empty()) { return; }
 
@@ -37,7 +36,7 @@ void SpotifyManager::DownloadPreview(Song song) {
 }
 
 void SpotifyManager::DownloadImage(Song song) {
-	std::wstring wSongId = RocketLeagueSpotify::StrToWStr(song.id);
+	std::wstring wSongId = Helpers::StrToWStr(song.id);
 	std::wstring filePath = cacheManager.GetCachedImage(wSongId);
 	if (!filePath.empty()) { return; }
 
@@ -54,12 +53,12 @@ void SpotifyManager::DownloadImage(Song song) {
 }
 
 std::wstring SpotifyManager::GetAudioPath(std::string songId) {
-	std::wstring wSongId = RocketLeagueSpotify::StrToWStr(songId);
+	std::wstring wSongId = Helpers::StrToWStr(songId);
 	return audioDir + wSongId + L".mp3";
 }
 
 std::wstring SpotifyManager::GetImagePath(std::string songId) {
-	std::wstring wSongId = RocketLeagueSpotify::StrToWStr(songId);
+	std::wstring wSongId = Helpers::StrToWStr(songId);
 	return imageDir + wSongId + L".jpg";
 }
 
@@ -77,15 +76,15 @@ void SpotifyManager::ParsePlaylist(SpotifyPlaylist &playlist, json &items) {
 
 			std::string previewUrl = items[i]["track"]["preview_url"];
 			std::string id = items[i]["track"]["id"];
-			std::wstring name = RocketLeagueSpotify::StrToWStr(items[i]["track"]["name"]);
-			std::wstring artist = RocketLeagueSpotify::StrToWStr(items[i]["track"]["artists"][0]["name"]);
-			std::wstring album = RocketLeagueSpotify::StrToWStr(items[i]["track"]["album"]["name"]);
+			std::wstring name = Helpers::StrToWStr(items[i]["track"]["name"]);
+			std::wstring artist = Helpers::StrToWStr(items[i]["track"]["artists"][0]["name"]);
+			std::wstring album = Helpers::StrToWStr(items[i]["track"]["album"]["name"]);
 			std::string albumArtUrl = items[i]["track"]["album"]["images"][0]["url"];
 			std::wstring audioPath = SpotifyManager::GetAudioPath(id);
 			std::wstring imagePath = SpotifyManager::GetImagePath(id);
 
 			Song song(id, previewUrl, name, artist, album, albumArtUrl, audioPath, imagePath);
-			std::wstring output = RocketLeagueSpotify::StrToWStr(id) + L" | " + RocketLeagueSpotify::StrToWStr(previewUrl) + L" | " + name + L" | " + artist + L" | " + album + L" | " + RocketLeagueSpotify::StrToWStr(albumArtUrl);
+			std::wstring output = Helpers::StrToWStr(id) + L" | " + Helpers::StrToWStr(previewUrl) + L" | " + name + L" | " + artist + L" | " + album + L" | " + Helpers::StrToWStr(albumArtUrl);
 			// cvarManager->log(output);
 			playlist.songs.push_back(song);
 		}
@@ -95,7 +94,7 @@ void SpotifyManager::ParsePlaylist(SpotifyPlaylist &playlist, json &items) {
 	}
 }
 
-SpotifyPlaylist SpotifyManager::GetPlaylist(std::string playlistId, bool doRetry) {
+SpotifyPlaylist SpotifyManager::GetPlaylist(std::string playlistId, bool doRetry/* = true */, bool downloadSongs/* = true */) {
 
 	SpotifyPlaylist playlist = SpotifyPlaylist();
 	playlist.id = playlistId;
@@ -119,7 +118,7 @@ SpotifyPlaylist SpotifyManager::GetPlaylist(std::string playlistId, bool doRetry
 		json playlistResponse = json::parse(res.text);
 		json items = playlistResponse["tracks"]["items"];
 		if (!items.is_null()) {
-			playlist.name = RocketLeagueSpotify::StrToWStr(playlistResponse["name"]);
+			playlist.name = Helpers::StrToWStr(playlistResponse["name"]);
 
 			ParsePlaylist(playlist, items);
 
@@ -144,10 +143,12 @@ SpotifyPlaylist SpotifyManager::GetPlaylist(std::string playlistId, bool doRetry
 				}
 			}
 
-			std::thread t([&](std::deque<Song> songs) {
-				DownloadFiles(songs);
-			}, playlist.songs);
-			t.detach();
+			if (downloadSongs) {
+				std::thread t([&](std::deque<Song> songs) {
+					DownloadFiles(songs);
+				}, playlist.songs);
+				t.detach();
+			}
 		}
 		else {
 			cvarManager->log("Playlist empty or not found");

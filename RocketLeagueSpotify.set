@@ -1,5 +1,46 @@
 Rocket League + Spotify
-5|Master volume|RLS_Master|0|100
+
+9|
+8|
+9|Your Playlist
+9|
+
 12|Goal playlist Spotify ID|RLS_GoalPlaylist
 9|$RLS_GoalPlaylistStatus$
+
+9|
+8|
+9|Playback Settings
+9|
+
+5|Master volume|RLS_Master|0|100
 1|Play songs in training|RLS_PlayInTraining
+1|Stop songs when returning to menu|RLS_StopInMenu
+
+9|
+8|
+9|Playlist Settings
+9|
+
+9|Because of your choices below:
+9|$RLS_SyncStatus$
+9|
+
+1|Use your own playlist for all goals|RLS_OwnPlaylistOnly
+10|!RLS_OwnPlaylistOnly
+1|Only listen to party members' playlists|RLS_PartyMembersOnly
+10|!RLS_PartyMembersOnly
+1|Use enemy players' playlists for their goals|RLS_DownloadEnemyPlaylists
+10|!RLS_DownloadEnemyPlaylists
+1|Use your own playlist for all enemy goals|RLS_OwnPlaylistForEnemies
+11|
+11|
+1|Use your own playlist for players without their own playlist|RLS_UseOwnForMissing
+11|
+
+9|
+8|
+9|Miscellaneous Settings
+9|
+
+1|Enable alt+f4 to force quit|RLS_EnableForceQuit

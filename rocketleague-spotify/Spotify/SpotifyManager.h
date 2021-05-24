@@ -2,6 +2,7 @@
 
 #include <bakkesmod/wrappers/cvarmanagerwrapper.h>
 
+#include "Helpers.h"
 #include "Cache/CacheManager.h"
 #include "Spotify/Song.h"
 #include "Spotify/SpotifyPlaylist.h"
@@ -28,6 +29,6 @@ public:
 	void DownloadPreview(Song);
 	void DownloadFiles(std::deque<Song>);
 	void DownloadImage(Song);
-	SpotifyPlaylist GetPlaylist(std::string playlistId, bool doRetry = true);
+	SpotifyPlaylist GetPlaylist(std::string, bool=true, bool=true);
 	void ParsePlaylist(SpotifyPlaylist&, nlohmann::json&);
 };

@@ -16,6 +16,7 @@
 #include <thread>
 #include <random>
 #include <chrono>
+#include <optional>
 
 #pragma comment( lib, "bass.lib" )
 #include "bass.h"
