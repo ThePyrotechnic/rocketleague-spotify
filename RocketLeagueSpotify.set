@@ -1,5 +1,15 @@
 Rocket League + Spotify
 
+9|Authentication
+9|
+
+10|!RLS_IsAuthenticatedSpotify
+0|Connect to Spotify|RLS_SpotifyAuth
+9|
+12|Your authorization code|RLS_SpotifyAuthCode
+0|Submit Auth Code|RLS_SpotifyDigestAuth
+11|
+
 9|
 8|
 9|Your Playlist

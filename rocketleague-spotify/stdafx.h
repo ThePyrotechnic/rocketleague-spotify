@@ -17,6 +17,8 @@
 #include <random>
 #include <chrono>
 #include <optional>
+#include <Windows.h>
+#include <shellapi.h>
 
 #pragma comment( lib, "bass.lib" )
 #include "bass.h"
@@ -26,7 +28,11 @@
 #pragma comment( lib, "libssl.lib" )
 #pragma comment( lib, "libcurl.lib" )
 #pragma comment( lib, "cpr.lib" )
+#pragma comment ( lib, "cryptlib.lib" )
 #include "cpr/cpr.h"
 #include "nlohmann/json.hpp"
 
 #include "imgui/imgui.h"
+
+#include "cryptopp/sha.h"
+#include "cryptopp/base64.h"

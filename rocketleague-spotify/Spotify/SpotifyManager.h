@@ -16,12 +16,8 @@ public:
 	std::wstring audioDir;
 	std::wstring imageDir;
 	std::wstring modDir;
-	std::string token;
-	std::string credential;
 	nlohmann::json config;
 	CacheManager cacheManager;
-
-	int Authenticate();
 
 	std::wstring GetAudioPath(std::string);
 	std::wstring GetImagePath(std::string);
@@ -31,4 +27,11 @@ public:
 	void DownloadImage(Song);
 	SpotifyPlaylist GetPlaylist(std::string, bool=true, bool=true);
 	void ParsePlaylist(SpotifyPlaylist&, nlohmann::json&);
+
+	void StartSpotifyAuthFlow();
+	void RefreshAuthCode();
+	void ExchangeCodeForAccess(std::string);
+
+private:
+	static const std::string clientID;
 };

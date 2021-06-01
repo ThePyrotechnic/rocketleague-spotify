@@ -31,18 +31,29 @@ public:
 	void ForceQuit();
 	void SetSyncStatus();
 	void CVarSyncStatus(std::string, CVarWrapper);
+	void CVarAuthChanged(std::string, CVarWrapper);
+	
+	void SpotifyAuth();
+	void SpotifyDigestAuth();
 
 	std::shared_ptr<int> fadeInTimeCVar;
 	std::shared_ptr<int> fadeOutTimeCVar;
-	std::shared_ptr <std::string> goalPlaylistCVar;
-	std::shared_ptr <bool> playInTrainingCVar;
-	std::shared_ptr <bool> stopInMenuCVar;
-	std::shared_ptr <bool> forceQuitEnabledCVar;
-	std::shared_ptr <bool> ownPlaylistOnlyCVar;
-	std::shared_ptr <bool> partyMembersOnlyCVar;
-	std::shared_ptr <bool> downloadEnemyPlaylistsCVar;
-	std::shared_ptr <bool> ownPlaylistForEnemiesCVar;
-	std::shared_ptr <bool> useOwnForMissingCVar;
+	std::shared_ptr<std::string> goalPlaylistCVar;
+	std::shared_ptr<bool> playInTrainingCVar;
+	std::shared_ptr<bool> stopInMenuCVar;
+	std::shared_ptr<bool> forceQuitEnabledCVar;
+	std::shared_ptr<bool> ownPlaylistOnlyCVar;
+	std::shared_ptr<bool> partyMembersOnlyCVar;
+	std::shared_ptr<bool> downloadEnemyPlaylistsCVar;
+	std::shared_ptr<bool> ownPlaylistForEnemiesCVar;
+	std::shared_ptr<bool> useOwnForMissingCVar;
+
+	std::shared_ptr<std::string> codeVerifierCVar;
+
+	std::shared_ptr<bool> isAuthenticatedSpotifyCVar;
+	std::shared_ptr<std::string> spotifyAccessTokenCVar;
+	std::shared_ptr<std::string> spotifyRefreshTokenCVar;
+	std::shared_ptr<std::string> spotifyAuthCodeCVar;
 
 	LinearColor textColor;
 
@@ -53,6 +64,7 @@ public:
 	std::wstring modDir;
 	std::wstring audioDir;
 	std::wstring imageDir;
+	std::wstring cvarConfigDir;
 	void FadeMasterVolume(int, int);
 	HSTREAM PlayNextSongForPlayer(std::string, int=-1, int=-1, bool=true);
 	clock_t lastFadeTime = 0;
