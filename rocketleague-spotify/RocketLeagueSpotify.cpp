@@ -275,6 +275,7 @@ void RocketLeagueSpotify::LoadPlaylists(std::string commaSeparatedIDs) {
 		for (std::string id : playersWithPlaylists) {
 			loadedPlaylists[id].Shuffle(rng);
 		}
+		DumpPlaylists("On initialization");
 	}, commaSeparatedIDs);
 	t.detach();
 }
@@ -371,7 +372,8 @@ void RocketLeagueSpotify::AddPlaylistForID(std::string IDString, std::string pla
 	}
 	json data = {
 		{"id", playerIDString},
-		{"goal_music_uri", playlistID}
+		{"goal_music_uri", playlistID},
+		{"access_token", *codeVerifierCVar}
 	};
 
 	cpr::Response res = cpr::Put(
@@ -398,7 +400,34 @@ struct TickerStruct {
 	
 };
 
+void RocketLeagueSpotify::DumpPlaylists(std::string customInfo) {
+	std::wstring logDir = modDir + LR"(\debugPlaylistState.json)";
+	std::ofstream oStream(logDir, std::ios_base::app);
+	
+	ServerWrapper gameState = gameWrapper->GetCurrentGameState();
+
+	nlohmann::json state;
+	state["customInfo"] = customInfo;
+
+	if (gameState) {
+		state["seed"] = seed;
+	}
+
+	for (auto& playlist : loadedPlaylists) {
+		state[playlist.first]["playerId"] = playlist.first;
+		state[playlist.first]["songs"] = nlohmann::json::array();
+		for (auto& song : playlist.second.songs) {
+			state[playlist.first]["songs"].push_back(song.id);
+		}
+	}
+
+	oStream << ",\n" << state.dump(2);
+	oStream.close();
+}
+
 HSTREAM RocketLeagueSpotify::PlayNextSongForPlayer(std::string ID, int timeToFade/* = -1 */, int targetVolume/* = -1 */, bool pop/* = true */) {
+	DumpPlaylists("On goal for: " + ID);
+
 	bool takeRandom = false;
 	bool skip = false;
 
@@ -500,6 +529,8 @@ void RocketLeagueSpotify::ReplayStart(std::string eventName) {
 }
 
 void RocketLeagueSpotify::ReplayEnd(std::string eventName) {
+	DumpPlaylists("On replay end");
+
 	FadeOut(*fadeOutTimeCVar);
 	gameWrapper->SetTimeout([this](GameWrapper* gw) {
 		for (HSTREAM s : replaySounds) {

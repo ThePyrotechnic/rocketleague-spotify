@@ -32,6 +32,7 @@ public:
 	void SetSyncStatus();
 	void CVarSyncStatus(std::string, CVarWrapper);
 	void CVarAuthChanged(std::string, CVarWrapper);
+	void DumpPlaylists(std::string="");
 	
 	void SpotifyAuth();
 	void SpotifyDigestAuth();

@@ -53,4 +53,5 @@ void Helpers::SaveCVars(std::shared_ptr<CVarManagerWrapper> cvarManager, std::ws
 
 	std::ofstream oStream(filePath);
 	oStream << cVars.dump();
+	oStream.close();
 }

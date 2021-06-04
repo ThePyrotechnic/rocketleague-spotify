@@ -114,7 +114,6 @@ SpotifyPlaylist SpotifyManager::GetPlaylist(std::string playlistId, bool doRetry
 	}
 
 	std::string accessToken = cvarManager->getCvar("RLS_SpotifyAccessToken").getStringValue();
-	cvarManager->log("Request access token: " + accessToken);
 
 	// https://developer.spotify.com/documentation/web-api/reference/#category-playlists
 	cpr::Response res = cpr::Get(
@@ -174,8 +173,6 @@ SpotifyPlaylist SpotifyManager::GetPlaylist(std::string playlistId, bool doRetry
 void SpotifyManager::RefreshAuthCode() {
 	std::string accessToken = cvarManager->getCvar("RLS_SpotifyAccessToken").getStringValue();
 	std::string refreshToken = cvarManager->getCvar("RLS_SpotifyRefreshToken").getStringValue();
-	cvarManager->log("Old access: " + accessToken);
-	cvarManager->log("Old refresh: " + refreshToken);
 
 	cpr::Response res = cpr::Post(
 		cpr::Url{ "https://accounts.spotify.com/api/token" },
@@ -187,19 +184,14 @@ void SpotifyManager::RefreshAuthCode() {
 	);
 	json refreshResponse;
 	if (res.status_code == 200) {
-		cvarManager->log(res.text);
-
 		refreshResponse = json::parse(res.text);
 		accessToken = refreshResponse["access_token"];
 		refreshToken = refreshResponse["refresh_token"];
 		cvarManager->getCvar("RLS_SpotifyAccessToken").setValue(accessToken);
 		cvarManager->getCvar("RLS_SpotifyRefreshToken").setValue(refreshToken);
 		cvarManager->getCvar("RLS_IsAuthenticatedSpotify").setValue(true);
-		cvarManager->log("New access: " + accessToken);
-		cvarManager->log("New refresh: " + refreshToken);
 	}
 	else {
-		cvarManager->log(res.text);
 		cvarManager->getCvar("RLS_IsAuthenticatedSpotify").setValue(false);
 	}
 }
@@ -227,8 +219,6 @@ void SpotifyManager::ExchangeCodeForAccess(std::string authCode) {
 		cvarManager->getCvar("RLS_SpotifyAccessToken").setValue(accessToken);
 		cvarManager->getCvar("RLS_SpotifyRefreshToken").setValue(refreshToken);
 		cvarManager->getCvar("RLS_IsAuthenticatedSpotify").setValue(true);
-		cvarManager->log("New access: " + accessToken);
-		cvarManager->log("New refresh: " + refreshToken);
 	}
 	else {
 		cvarManager->log(res.text);
