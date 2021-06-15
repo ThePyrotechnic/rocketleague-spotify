@@ -85,7 +85,6 @@ public:
 	std::shared_ptr<ImageWrapper> songBgImage;
 	std::shared_ptr<ImageWrapper> albumArtBgImage;
 	std::shared_ptr<ImageWrapper> albumArtImage;
-	bool isSongPlaying;
 
 	virtual void Render() override;
 	virtual std::string GetMenuName() override;
@@ -97,6 +96,7 @@ public:
 	virtual void OnClose() override;
 
 	bool isWindowOpen_ = false;
+	bool isMatchEnding = false;
 
 	ImFont* font;
 	Song nextSong;
